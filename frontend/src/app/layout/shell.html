@@ -1,0 +1,111 @@
+<a href="#main-content" class="skip-link">Skip to content</a>
+
+<div class="min-h-screen lg:grid lg:grid-cols-[252px_minmax(0,1fr)]">
+  @if (mobileOpen()) {
+    <button
+      type="button"
+      class="fixed inset-0 z-30 bg-asphalt/55 lg:hidden"
+      aria-label="Close navigation"
+      (click)="mobileOpen.set(false)"
+    ></button>
+  }
+
+  <aside
+    class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-asphalt transition-transform duration-200 lg:static lg:translate-x-0"
+    [class.-translate-x-full]="!mobileOpen()"
+    aria-label="Main navigation"
+  >
+    <div class="h-[3px] bg-signal"></div>
+
+    <div class="flex items-center gap-3 border-b border-white/10 px-5 py-[17px]">
+      <a routerLink="/dashboard" class="flex min-w-0 items-center gap-3">
+        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-[3px] bg-signal text-asphalt">
+          <ng-icon name="lucideSquareParking" size="21" />
+        </span>
+        <span class="min-w-0">
+          <span class="block text-[17px] font-semibold leading-tight tracking-tight text-white">Patio</span>
+          <span class="block text-[11px] leading-tight text-white/45">Parking operations</span>
+        </span>
+      </a>
+      <button
+        type="button"
+        class="ml-auto rounded-[3px] p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal lg:hidden"
+        aria-label="Close navigation"
+        (click)="mobileOpen.set(false)"
+      >
+        <ng-icon name="lucideX" size="18" />
+      </button>
+    </div>
+
+    <nav class="mt-5 flex-1 space-y-1 px-3" aria-label="Sections">
+      <p class="px-2 pb-2 text-[11px] font-medium text-white/40">Operations</p>
+      @for (item of visibleNav(); track item.path) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+          class="nav-link"
+        >
+          <ng-icon [name]="item.icon" size="18" class="shrink-0" />
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+
+    <div class="m-4 border border-white/10 p-3">
+      <div class="flex items-center gap-3">
+        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-xs font-semibold text-white">
+          {{ initials() }}
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium leading-tight text-white">{{ user()?.name }}</p>
+          <p class="mt-0.5 text-[11px] leading-tight text-white/45">{{ roleLabel(user()?.role) }}</p>
+        </div>
+        <button
+          type="button"
+          class="rounded-[3px] p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+          aria-label="Sign out"
+          title="Sign out"
+          (click)="logout()"
+        >
+          <ng-icon name="lucideLogOut" size="16" />
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="min-w-0">
+    <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-paper/95 px-4 backdrop-blur sm:px-6 lg:px-8">
+      <button
+        type="button"
+        class="rounded-[3px] p-2 text-ink transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal lg:hidden"
+        aria-label="Open navigation"
+        [attr.aria-expanded]="mobileOpen()"
+        (click)="mobileOpen.set(true)"
+      >
+        <ng-icon name="lucideMenu" size="20" />
+      </button>
+
+      <div class="min-w-0">
+        <p class="truncate text-[11px] leading-tight text-muted">{{ today }}</p>
+        <h1 class="truncate text-lg font-semibold leading-tight tracking-tight text-ink">{{ pageTitle() }}</h1>
+      </div>
+
+      <div class="ml-auto flex items-center gap-2">
+        @if (pageTitle() !== 'Check in' && pageTitle() !== 'Yard') {
+          <a routerLink="/check-in" class="btn btn-primary btn-sm">
+            <ng-icon name="lucidePlus" size="16" />
+            <span class="hidden sm:inline">Check in vehicle</span>
+            <span class="sr-only sm:hidden">Check in vehicle</span>
+          </a>
+        }
+      </div>
+    </header>
+
+    <main id="main-content" class="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<app-toast-container />

@@ -1,0 +1,184 @@
+<div class="min-h-screen bg-paper lg:grid lg:grid-cols-[1.05fr_1fr]">
+  <aside class="relative hidden overflow-hidden bg-asphalt px-10 py-9 text-white lg:flex lg:flex-col xl:px-14">
+    <div class="absolute inset-x-0 top-0 h-[3px] bg-signal"></div>
+
+    <div class="flex items-center gap-3">
+      <span class="grid h-10 w-10 place-items-center rounded-[3px] bg-signal text-asphalt">
+        <ng-icon name="lucideSquareParking" size="23" />
+      </span>
+      <div>
+        <p class="text-lg font-semibold leading-tight tracking-tight">Patio</p>
+        <p class="text-[11px] leading-tight text-white/45">Parking operations</p>
+      </div>
+    </div>
+
+    <div class="my-auto max-w-xl py-12">
+      <p class="text-[11px] font-medium text-signal">Small lot operations</p>
+      <h2 class="mt-4 text-[44px] font-semibold leading-[1.06] tracking-tight xl:text-[52px]">
+        Every bay<br />accounted for.
+      </h2>
+      <p class="mt-5 max-w-md text-base leading-relaxed text-white/60">
+        Run the lot from one place: check-ins, check-outs, occupancy, revenue and pricing — with server-calculated charges.
+      </p>
+
+      <div class="mt-10 grid gap-4">
+        <div class="flex items-start gap-3">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-[3px] border border-white/15 text-signal">
+            <ng-icon name="lucideGauge" size="17" />
+          </span>
+          <div>
+            <p class="text-sm font-medium">Live lot visibility</p>
+            <p class="mt-0.5 text-xs leading-relaxed text-white/45">Occupancy and revenue read straight from MySQL.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-[3px] border border-white/15 text-signal">
+            <ng-icon name="lucideShieldCheck" size="17" />
+          </span>
+          <div>
+            <p class="text-sm font-medium">Role-based access</p>
+            <p class="mt-0.5 text-xs leading-relaxed text-white/45">Administrators, managers and attendants see only what they need.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-[3px] border border-white/15 text-signal">
+            <ng-icon name="lucideKeyRound" size="17" />
+          </span>
+          <div>
+            <p class="text-sm font-medium">Sessions that expire</p>
+            <p class="mt-0.5 text-xs leading-relaxed text-white/45">Signed JWTs, hashed passwords and protected API routes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between border-t border-white/10 pt-5 text-[11px] text-white/35">
+      <span>Patio · Parking operations</span>
+      <span>v1.0</span>
+    </div>
+  </aside>
+
+  <main class="flex min-h-screen flex-col px-5 py-8 sm:px-10 lg:px-12 xl:px-16">
+    <div class="flex items-center gap-3 lg:hidden">
+      <span class="grid h-9 w-9 place-items-center rounded-[3px] bg-signal text-asphalt">
+        <ng-icon name="lucideSquareParking" size="20" />
+      </span>
+      <div>
+        <p class="text-base font-semibold leading-tight tracking-tight">Patio</p>
+        <p class="text-[10px] leading-tight text-muted">Parking operations</p>
+      </div>
+    </div>
+
+    <div class="mx-auto flex w-full max-w-[430px] flex-1 flex-col justify-center py-10">
+      <div>
+        <h1 class="text-[28px] font-semibold tracking-tight">Sign in</h1>
+        <p class="mt-1.5 text-sm text-muted">Use your lot account. What you can access depends on your role.</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="mt-7 space-y-4">
+        <div>
+          <label class="label" for="login-email">Email</label>
+          <input
+            id="login-email"
+            type="email"
+            formControlName="email"
+            class="input"
+            placeholder="you@patio.local"
+            autocomplete="email"
+            autofocus
+          />
+          @if (form.controls.email.touched && form.controls.email.errors?.['required']) {
+            <p class="field-error">Enter your email address.</p>
+          }
+          @if (form.controls.email.touched && form.controls.email.errors?.['email']) {
+            <p class="field-error">Enter a valid email address.</p>
+          }
+        </div>
+
+        <div>
+          <label class="label" for="login-password">Password</label>
+          <div class="relative">
+            <input
+              id="login-password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              class="input pr-11"
+              placeholder="Your password"
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-[3px] p-2 text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              [attr.aria-pressed]="showPassword()"
+              (click)="togglePassword()"
+            >
+              <ng-icon [name]="showPassword() ? 'lucideEyeOff' : 'lucideEye'" size="17" />
+            </button>
+          </div>
+          @if (form.controls.password.touched && form.controls.password.errors?.['required']) {
+            <p class="field-error">Enter your password.</p>
+          }
+        </div>
+
+        @if (error()) {
+          <div class="flex items-start gap-2 border border-occupied/30 bg-occupied-soft p-3 text-sm text-occupied" role="alert">
+            <ng-icon name="lucideCircleAlert" size="17" class="mt-0.5 shrink-0" />
+            <span>{{ error() }}</span>
+          </div>
+        }
+
+        <button type="submit" class="btn btn-primary w-full" [disabled]="submitting()">
+          @if (submitting()) {
+            <ng-icon name="lucideLoaderCircle" size="16" class="animate-spin" />
+            Signing in…
+          } @else {
+            Sign in
+            <ng-icon name="lucideArrowRight" size="16" />
+          }
+        </button>
+
+        <p class="flex items-center justify-center gap-1.5 text-[11px] text-muted">
+          <ng-icon name="lucideLockKeyhole" size="13" />
+          This session is kept for the current tab only.
+        </p>
+      </form>
+
+      <section class="mt-8 border border-line bg-surface p-4">
+        <div class="flex items-start gap-2">
+          <ng-icon name="lucideUsers" size="17" class="mt-0.5 shrink-0 text-muted" />
+          <div>
+            <h2 class="text-sm font-semibold">Demo access</h2>
+            <p class="mt-0.5 text-xs text-muted">Three roles are preloaded for evaluation.</p>
+          </div>
+        </div>
+
+        <div class="mt-3 space-y-1.5">
+          @for (account of demoAccounts; track account.role) {
+            <button
+              type="button"
+              class="group flex w-full items-center justify-between gap-3 rounded-[3px] border border-line px-3 py-2 text-left transition-colors hover:border-asphalt/30 hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+              [attr.aria-label]="'Use the ' + account.label + ' demo account'"
+              (click)="fill(account)"
+            >
+              <span class="min-w-0">
+                <span class="block text-xs font-semibold">{{ account.label }}</span>
+                <span class="block truncate font-mono text-[10px] text-muted">{{ account.email }}</span>
+              </span>
+              <span class="flex shrink-0 items-center gap-2 font-mono text-[10px] text-muted">
+                {{ account.password }}
+                <ng-icon name="lucideArrowRight" size="13" class="transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </button>
+          }
+        </div>
+
+        <p class="mt-3 text-[10px] leading-relaxed text-muted">
+          Passwords are hashed with BCrypt. Demo accounts are for local evaluation only.
+        </p>
+      </section>
+
+      <p class="mt-6 text-center text-[11px] text-muted">Need access? Ask an administrator to create your account.</p>
+    </div>
+  </main>
+</div>
