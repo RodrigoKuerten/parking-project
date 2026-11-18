@@ -1,5 +1,7 @@
 # Patio — Parking Management MVP
 
+**Author:** Rodrigo Kuerten · [rodrigokuerten31@gmail.com](mailto:rodrigokuerten31@gmail.com)
+
 A functional full-stack parking management system for small parking lots. It tracks parking spots, vehicle check-ins and check-outs, calculates charges from configurable pricing rules, and reports live operational metrics from MySQL.
 
 ## Stack
