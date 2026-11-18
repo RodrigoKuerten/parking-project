@@ -1,6 +1,7 @@
 package br.com.patio.pricing;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +24,7 @@ public class PricingConfigController {
     }
 
     @PutMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public PricingConfigResponse update(@Valid @RequestBody PricingConfigRequest request) {
         return service.update(request);
     }
