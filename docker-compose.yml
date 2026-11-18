@@ -1,0 +1,23 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: patio-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: estacionamento
+      MYSQL_USER: parking
+      MYSQL_PASSWORD: parking123
+      MYSQL_ROOT_PASSWORD: root123
+      TZ: America/Sao_Paulo
+    ports:
+      - "3306:3306"
+    volumes:
+      - patio-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uparking", "-pparking123"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  patio-mysql-data:
