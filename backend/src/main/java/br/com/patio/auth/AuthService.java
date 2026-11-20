@@ -1,8 +1,10 @@
 package br.com.patio.auth;
 
+import br.com.patio.auth.dto.ChangePasswordRequest;
 import br.com.patio.auth.dto.LoginRequest;
 import br.com.patio.auth.dto.LoginResponse;
 import br.com.patio.security.JwtTokenService;
+import br.com.patio.shared.BusinessRuleException;
 import br.com.patio.user.AppUser;
 import br.com.patio.user.UserRepository;
 import br.com.patio.user.dto.UserResponse;
@@ -68,5 +70,15 @@ public class AuthService {
         AppUser user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Authenticated user not found."));
         return UserResponse.from(user);
+    }
+
+    @Transactional
+    public void changePassword(String email, ChangePasswordRequest request) {
+        AppUser user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new InvalidCredentialsException("Authenticated user not found."));
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new BusinessRuleException("The current password is incorrect.");
+        }
+        user.updatePassword(passwordEncoder.encode(request.newPassword()));
     }
 }

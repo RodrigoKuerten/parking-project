@@ -23,6 +23,7 @@ A functional full-stack parking management system for small parking lots. It tra
 - Transactional check-in/check-out operations, centralized exception handling and DTO-only API contracts
 - MySQL constraints that prevent a spot or vehicle from having two open sessions
 - Sign-in with three roles (Administrator, Manager, Attendant), guarded routes and protected API endpoints
+- Self-service password change for the signed-in user
 - Admin user management: create accounts, change roles, activate/deactivate and reset passwords
 - Login throttling, active-account checks, password policy and protection against removing the last administrator
 - Seeded demo users and movements on first run
@@ -62,7 +63,7 @@ frontend/
 
 ### 1. Start MySQL
 
-With Docker:
+With Docker (MySQL is published on host port **3307** to coexist with a local MySQL on 3306):
 
 ```bash
 docker compose up -d
@@ -80,7 +81,7 @@ The defaults match `backend/src/main/resources/application.yml`:
 
 | Variable | Default |
 |---|---|
-| `DB_URL` | `jdbc:mysql://127.0.0.1:3306/estacionamento` |
+| `DB_URL` | `jdbc:mysql://127.0.0.1:3307/estacionamento` |
 | `DB_USER` | `parking` |
 | `DB_PASSWORD` | `parking123` |
 | `SERVER_PORT` | `8080` |
@@ -93,6 +94,8 @@ The defaults match `backend/src/main/resources/application.yml`:
 | `ADMIN_PASSWORD` | `Admin@123` |
 
 Flyway creates the schema and seeds 20 parking spots plus the initial pricing configuration on the first run. The backend creates the bootstrap administrator when the users table is empty. With `DEMO_DATA=true` it also creates the Manager and Attendant demo accounts and sample movements. Set `DEMO_DATA=false`, a strong `JWT_SECRET` and a custom `ADMIN_PASSWORD` for any non-demo environment.
+
+The Docker container publishes MySQL on **host port 3307** so it can coexist with a local MySQL already using 3306. To point the API at a local MySQL instead, set `DB_URL=jdbc:mysql://127.0.0.1:3306/estacionamento` and create the database/user above.
 
 ### 2. Run the API
 
@@ -113,9 +116,40 @@ npm start
 
 Open `http://localhost:4200`. The Angular development server proxies `/api` to `http://localhost:8080` through `proxy.conf.json`.
 
+If ports `8080`/`4200` are already taken by another local app, run the API on `8081` and the web app on `4201`:
+
+```bash
+# terminal 1
+cd backend
+SERVER_PORT=8081 CORS_ORIGINS=http://localhost:4201,http://127.0.0.1:4201 mvn spring-boot:run
+
+# terminal 2
+cd frontend
+npm start -- --port 4201 --proxy-config proxy.8081.json
+```
+
+On PowerShell, set the two variables before `mvn spring-boot:run` with `$env:SERVER_PORT='8081'` and `$env:CORS_ORIGINS='http://localhost:4201,http://127.0.0.1:4201'`.
+
+### Production profile
+
+Start the API with `SPRING_PROFILES_ACTIVE=prod` and provide every secret through the environment:
+
+```bash
+SPRING_PROFILES_ACTIVE=prod \
+JWT_SECRET="<at least 32 random bytes>" \
+ADMIN_PASSWORD="<strong bootstrap password>" \
+DB_URL="jdbc:mysql://<host>:3306/estacionamento" \
+DB_USER="<user>" \
+DB_PASSWORD="<password>" \
+CORS_ORIGINS="https://<frontend-host>" \
+java -jar parking-api.jar
+```
+
+`application-prod.yml` disables demo data and the demo accounts, and refuses to start when `JWT_SECRET` or `ADMIN_PASSWORD` is missing. Serve the app over HTTPS (terminate TLS in a reverse proxy or load balancer); `server.forward-headers-strategy=framework` makes the API honor forwarded headers.
+
 ## Accounts and roles
 
-Demo accounts (local only):
+Demo accounts (created only when `DEMO_DATA=true`; never in the production profile):
 
 | Role | Email | Password |
 |---|---|---|
@@ -142,7 +176,8 @@ The sidebar and actions follow the signed-in role. The API re-checks every reque
 - Administrators cannot remove their own administrator access, and the system always keeps at least one active administrator.
 - The frontend stores the session in `sessionStorage` (tab-scoped) and sends it as a Bearer token.
 - CORS is restricted to the configured frontend origins; CSRF is disabled because the API is stateless and does not use cookies.
-- Sign-out is client-side; copied tokens remain valid until expiry. See `TODO.md` for production hardening items.
+- The production profile requires an explicit `JWT_SECRET` and `ADMIN_PASSWORD`, and disables demo data. The login page no longer exposes demo credentials.
+- Sign-out is client-side; copied tokens remain valid until expiry. See `TODO.md` for the remaining production hardening items.
 
 ## Testing and build
 
@@ -151,10 +186,11 @@ cd backend
 mvn test
 
 cd ../frontend
+npm test
 npm run build
 ```
 
-The backend tests cover the pricing calculation, license plate validation and login throttling.
+Backend tests cover the pricing calculation, license plate validation, login throttling and the HTTP auth flow (login, 401/403, token expiry, role changes and account deactivation) through MockMvc. Frontend tests cover plate/format helpers, session storage and route guards with Vitest.
 
 ## API
 
@@ -164,6 +200,7 @@ Except for `POST /api/auth/login`, every endpoint requires `Authorization: Beare
 |---|---|---|---|
 | `POST` | `/api/auth/login` | Sign in and receive a JWT | Public |
 | `GET` | `/api/auth/me` | Current account | All |
+| `POST` | `/api/auth/password` | Change the signed-in user's password | All |
 | `GET` | `/api/users` | List accounts | Admin |
 | `POST` | `/api/users` | Create an account | Admin |
 | `PUT` | `/api/users/{id}` | Update name, role, status or password | Admin |
@@ -233,4 +270,4 @@ Default configuration: first hour R$ 12.00, additional hour R$ 6.00, daily rate 
 
 ## Handoff
 
-Open `TODO.md` for the remaining production tasks, known limitations and demo credentials.
+Open `TODO.md` for the remaining production tasks, known limitations and demo credentials. The UI/UX research repertoire lives in `UI-UX-REFERENCE.md`, with a visual index at `docs/ui-references/gallery.html`. The redesigned screens are captured in `docs/redesign-screenshots/`.
