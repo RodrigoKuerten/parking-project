@@ -133,10 +133,10 @@
     @apply w-full border-collapse text-sm;
   }
   .table thead th {
-    @apply sticky top-0 z-[1] h-10 border-b border-border bg-background px-3 text-left align-middle font-medium whitespace-nowrap text-muted;
+    @apply sticky top-0 z-[1] h-10 border-b border-border bg-background px-2 text-left align-middle font-medium whitespace-nowrap text-muted sm:px-3;
   }
   .table tbody td {
-    @apply h-12 border-b border-border px-3 align-middle whitespace-nowrap;
+    @apply h-12 border-b border-border px-2 align-middle whitespace-nowrap sm:px-3;
   }
   .table tbody tr:last-child td {
     @apply border-b-0;

@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideClock, lucideReceipt, lucideRefreshCw, lucideSearch } from '@ng-icons/lucide';
+import { lucideClock, lucideLogOut, lucideReceipt, lucideRefreshCw, lucideSearch } from '@ng-icons/lucide';
 import { ApiService } from '../../core/api.service';
 import { CheckOutPreview, OpenSession } from '../../core/models';
 import { errorMessage } from '../../core/error';
@@ -19,7 +19,7 @@ type CheckoutStep = 'loading' | 'preview' | 'saving' | 'done' | 'error';
 @Component({
   selector: 'app-yard',
   imports: [RouterLink, NgIcon, EmptyState, Modal, PageHeader, Plate],
-  providers: [provideIcons({ lucideClock, lucideReceipt, lucideRefreshCw, lucideSearch })],
+  providers: [provideIcons({ lucideClock, lucideLogOut, lucideReceipt, lucideRefreshCw, lucideSearch })],
   templateUrl: './yard.html'
 })
 export class YardPage implements OnInit {
