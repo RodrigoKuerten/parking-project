@@ -159,6 +159,13 @@ export const en = {
   'color.Gray': 'Gray',
   'color.Red': 'Red',
   'color.Blue': 'Blue',
+  'color.Green': 'Green',
+  'color.Yellow': 'Yellow',
+  'color.Orange': 'Orange',
+  'color.Brown': 'Brown',
+  'color.Gold': 'Gold',
+  'color.Beige': 'Beige',
+  'color.Purple': 'Purple',
 
   'yard.desc': 'Vehicles currently parked. Amounts are estimates until check-out.',
   'yard.title': 'Parked vehicles',

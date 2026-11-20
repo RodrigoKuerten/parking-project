@@ -8,6 +8,7 @@ import { errorMessage } from '../../core/error';
 import { formatCurrency, formatDuration, formatShortDateTime, formatTime, normalizePlate } from '../../core/format';
 import { ToastService } from '../../core/toast.service';
 import { t } from '../../core/i18n';
+import { colorLabel } from '../../core/format';
 import { EmptyState } from '../../shared/empty-state';
 import { Modal } from '../../shared/modal';
 import { PageHeader } from '../../shared/page-header';
@@ -38,6 +39,7 @@ export class YardPage implements OnInit {
 
   protected readonly fmt = { formatCurrency, formatDuration, formatShortDateTime, formatTime };
   protected readonly t = t;
+  protected readonly colorLabel = colorLabel;
 
   protected readonly filtered = computed(() => {
     const q = this.query().trim().toUpperCase();

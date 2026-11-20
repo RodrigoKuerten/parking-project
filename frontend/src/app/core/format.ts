@@ -1,4 +1,27 @@
-import { intlLocale, t } from './i18n';
+import { intlLocale, t, TranslationKey } from './i18n';
+
+// Colors are stored in English by the API; known names are shown in the active language.
+const COLOR_KEYS: Record<string, TranslationKey> = {
+  white: 'color.White',
+  black: 'color.Black',
+  silver: 'color.Silver',
+  gray: 'color.Gray',
+  grey: 'color.Gray',
+  red: 'color.Red',
+  blue: 'color.Blue',
+  green: 'color.Green',
+  yellow: 'color.Yellow',
+  orange: 'color.Orange',
+  brown: 'color.Brown',
+  gold: 'color.Gold',
+  beige: 'color.Beige',
+  purple: 'color.Purple'
+};
+
+export function colorLabel(value: string): string {
+  const key = COLOR_KEYS[value.trim().toLowerCase()];
+  return key ? t(key) : value;
+}
 
 // Money is always BRL; only digit grouping and date order follow the selected language.
 export function formatCurrency(value: number | null | undefined): string {

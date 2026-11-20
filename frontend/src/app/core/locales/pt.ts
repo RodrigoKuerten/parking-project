@@ -161,6 +161,13 @@ export const pt: Dictionary = {
   'color.Gray': 'Cinza',
   'color.Red': 'Vermelho',
   'color.Blue': 'Azul',
+  'color.Green': 'Verde',
+  'color.Yellow': 'Amarelo',
+  'color.Orange': 'Laranja',
+  'color.Brown': 'Marrom',
+  'color.Gold': 'Dourado',
+  'color.Beige': 'Bege',
+  'color.Purple': 'Roxo',
 
   'yard.desc': 'Veículos estacionados no momento. Os valores são estimativas até a saída.',
   'yard.title': 'Veículos estacionados',

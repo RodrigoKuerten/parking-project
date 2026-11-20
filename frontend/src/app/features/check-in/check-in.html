@@ -15,7 +15,7 @@
       <dl class="mx-6 grid grid-cols-2 border-t border-border py-4 text-sm sm:mx-10">
         <div>
           <dt class="text-muted">{{ t('checkin.vehicle') }}</dt>
-          <dd class="mt-0.5 font-medium">{{ r.model }} · {{ r.color }}</dd>
+          <dd class="mt-0.5 font-medium">{{ r.model }} · {{ colorLabel(r.color) }}</dd>
         </div>
         <div class="text-right">
           <dt class="text-muted">{{ t('checkin.entry') }}</dt>
@@ -73,9 +73,7 @@
             }
           </div>
           <div>
-            <label class="field-label" for="color">{{ t('checkin.color') }}</label>
-            <input id="color" class="field" autocomplete="off" [placeholder]="t('color.White')" formControlName="color" maxlength="30"
-              [attr.aria-invalid]="invalid('color')" />
+            <p class="field-label">{{ t('checkin.color') }}</p>
             <div class="mt-2 flex flex-wrap gap-1.5" role="group" [attr.aria-label]="t('checkin.commonColors')">
               @for (c of colors; track c.value) {
                 <button type="button" class="badge h-7 cursor-pointer px-2.5 transition-colors hover:bg-accent"
