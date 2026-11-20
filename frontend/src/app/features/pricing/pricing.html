@@ -1,14 +1,14 @@
 <div class="page-enter">
-  <app-page-header title="Pricing" description="Rates the server uses to bill every check-out.">
+  <app-page-header [title]="t('nav.pricing')" [description]="t('pricing.desc')">
     @if (canEdit && config() && !editing()) {
       <button type="button" class="btn btn-primary" (click)="startEdit()">
-        <ng-icon name="lucidePencil" size="16" aria-hidden="true" /> Edit rates
+        <ng-icon name="lucidePencil" size="16" aria-hidden="true" /> {{ t('pricing.edit') }}
       </button>
     }
   </app-page-header>
 
   @if (loading()) {
-    <div class="grid overflow-hidden rounded-xl border border-border md:grid-cols-3" role="status" aria-label="Loading pricing">
+    <div class="grid overflow-hidden rounded-xl border border-border md:grid-cols-3" role="status" [attr.aria-label]="t('pricing.loading')">
       @for (i of [1, 2, 3]; track i) {
         <div class="border-border p-8 not-last:border-b md:not-last:border-r md:not-last:border-b-0">
           <div class="skeleton mb-5 h-4 w-24"></div>
@@ -18,60 +18,60 @@
     </div>
   } @else if (error()) {
     <div class="panel">
-      <app-empty-state icon="lucideCircleAlert" tone="error" title="Couldn't load pricing" [description]="error()!">
-        <button type="button" class="btn btn-secondary btn-sm" (click)="load()">Try again</button>
+      <app-empty-state icon="lucideCircleAlert" tone="error" [title]="t('pricing.errorTitle')" [description]="error()!">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="load()">{{ t('common.tryAgain') }}</button>
       </app-empty-state>
     </div>
   } @else if (config(); as c) {
     @if (!editing()) {
       <!-- Vercel pricing: columns divided by 1px rules, big price, "Base" pill on the first column. -->
-      <section class="overflow-hidden rounded-xl border border-border bg-background" aria-label="Current rates">
+      <section class="overflow-hidden rounded-xl border border-border bg-background" [attr.aria-label]="t('pricing.current')">
         <div class="grid md:grid-cols-3">
           <div class="border-b border-border p-6 sm:p-8 md:border-r md:border-b-0">
-            <p class="flex items-center gap-2 text-sm font-medium">First hour <span class="badge h-5 bg-accent px-1.5 text-[11px]">Base</span></p>
+            <p class="flex items-center gap-2 text-sm font-medium">{{ t('pricing.firstHour') }} <span class="badge h-5 bg-accent px-1.5 text-[11px]">{{ t('pricing.base') }}</span></p>
             <p class="mt-5 flex items-baseline gap-1.5">
               <span class="text-[44px] leading-none font-semibold tracking-[-0.05em] tabular-nums">{{ fmt.formatCurrency(c.firstHourRate) }}</span>
             </p>
-            <p class="mt-4 text-[15px] text-muted">Charged as soon as the grace period ends.</p>
+            <p class="mt-4 text-[15px] text-muted">{{ t('pricing.firstHourDesc') }}</p>
           </div>
           <div class="border-b border-border p-6 sm:p-8 md:border-r md:border-b-0">
-            <p class="text-sm font-medium">Each extra hour</p>
+            <p class="text-sm font-medium">{{ t('pricing.extraHour') }}</p>
             <p class="mt-5 flex items-baseline gap-1.5">
               <span class="text-[44px] leading-none font-semibold tracking-[-0.05em] tabular-nums">{{ fmt.formatCurrency(c.additionalHourRate) }}</span>
-              <span class="data text-sm text-muted">/h</span>
+              <span class="data text-sm text-muted">{{ t('pricing.perHour') }}</span>
             </p>
-            <p class="mt-4 text-[15px] text-muted">Per started hour after the first.</p>
+            <p class="mt-4 text-[15px] text-muted">{{ t('pricing.extraHourDesc') }}</p>
           </div>
           <div class="p-6 sm:p-8">
-            <p class="text-sm font-medium">Daily cap</p>
+            <p class="text-sm font-medium">{{ t('pricing.daily') }}</p>
             <p class="mt-5 flex items-baseline gap-1.5">
               <span class="text-[44px] leading-none font-semibold tracking-[-0.05em] tabular-nums">{{ fmt.formatCurrency(c.dailyRate) }}</span>
-              <span class="data text-sm text-muted">/day</span>
+              <span class="data text-sm text-muted">{{ t('pricing.perDay') }}</span>
             </p>
-            <p class="mt-4 text-[15px] text-muted">Charged per full day; each day's remainder never exceeds it.</p>
+            <p class="mt-4 text-[15px] text-muted">{{ t('pricing.dailyDesc') }}</p>
           </div>
         </div>
         <dl class="grid border-t border-border bg-subtle text-sm sm:grid-cols-3">
           <div class="flex justify-between gap-4 border-b border-border px-6 py-4 sm:border-r sm:border-b-0 sm:px-8">
-            <dt class="text-muted">Grace period</dt><dd class="data">{{ c.graceMinutes }} min</dd>
+            <dt class="text-muted">{{ t('pricing.grace') }}</dt><dd class="data">{{ c.graceMinutes }} {{ t('common.min') }}</dd>
           </div>
           <div class="flex justify-between gap-4 border-b border-border px-6 py-4 sm:border-r sm:border-b-0 sm:px-8">
-            <dt class="text-muted">Rounding block</dt><dd class="data">{{ c.roundingMinutes }} min</dd>
+            <dt class="text-muted">{{ t('pricing.rounding') }}</dt><dd class="data">{{ c.roundingMinutes }} {{ t('common.min') }}</dd>
           </div>
           <div class="flex justify-between gap-4 px-6 py-4 sm:px-8">
-            <dt class="text-muted">Last updated</dt><dd class="data">{{ c.updatedAt ? fmt.formatShortDateTime(c.updatedAt) : '—' }}</dd>
+            <dt class="text-muted">{{ t('pricing.lastUpdated') }}</dt><dd class="data">{{ c.updatedAt ? fmt.formatShortDateTime(c.updatedAt) : '—' }}</dd>
           </div>
         </dl>
       </section>
       @if (!canEdit) {
-        <p class="mt-4 text-sm text-muted">Only managers and administrators can change rates.</p>
+        <p class="mt-4 text-sm text-muted">{{ t('pricing.onlyManagers') }}</p>
       }
     } @else {
       <form class="panel max-w-3xl" [formGroup]="form" (ngSubmit)="save()" novalidate aria-labelledby="edit-title">
         <div class="panel-header">
           <div>
-            <h2 id="edit-title" class="panel-title">Edit rates</h2>
-            <p class="panel-description">New rates apply to the next check-out.</p>
+            <h2 id="edit-title" class="panel-title">{{ t('pricing.editTitle') }}</h2>
+            <p class="panel-description">{{ t('pricing.editDesc') }}</p>
           </div>
         </div>
         <div class="grid gap-5 px-6 pt-2 pb-6 sm:grid-cols-3">
@@ -79,39 +79,39 @@
             <p class="alert-error sm:col-span-3" role="alert">{{ formError() }}</p>
           }
           <div>
-            <label class="field-label" for="p-first">First hour (R$)</label>
+            <label class="field-label" for="p-first">{{ t('pricing.firstHourLabel') }}</label>
             <input id="p-first" class="field data" type="number" step="0.01" min="0.01" inputmode="decimal" formControlName="firstHourRate" autofocus
               [attr.aria-invalid]="invalid('firstHourRate')" />
-            @if (invalid('firstHourRate')) { <p class="field-error">Greater than zero, up to 2 decimals.</p> }
+            @if (invalid('firstHourRate')) { <p class="field-error">{{ t('form.decimals') }}</p> }
           </div>
           <div>
-            <label class="field-label" for="p-extra">Each extra hour (R$)</label>
+            <label class="field-label" for="p-extra">{{ t('pricing.extraLabel') }}</label>
             <input id="p-extra" class="field data" type="number" step="0.01" min="0.01" inputmode="decimal" formControlName="additionalHourRate"
               [attr.aria-invalid]="invalid('additionalHourRate')" />
-            @if (invalid('additionalHourRate')) { <p class="field-error">Greater than zero, up to 2 decimals.</p> }
+            @if (invalid('additionalHourRate')) { <p class="field-error">{{ t('form.decimals') }}</p> }
           </div>
           <div>
-            <label class="field-label" for="p-daily">Daily cap (R$)</label>
+            <label class="field-label" for="p-daily">{{ t('pricing.dailyLabel') }}</label>
             <input id="p-daily" class="field data" type="number" step="0.01" min="0.01" inputmode="decimal" formControlName="dailyRate"
               [attr.aria-invalid]="invalid('dailyRate')" />
-            @if (invalid('dailyRate')) { <p class="field-error">Greater than zero, up to 2 decimals.</p> }
+            @if (invalid('dailyRate')) { <p class="field-error">{{ t('form.decimals') }}</p> }
           </div>
           <div>
-            <label class="field-label" for="p-grace">Grace period (min)</label>
+            <label class="field-label" for="p-grace">{{ t('pricing.graceLabel') }}</label>
             <input id="p-grace" class="field data" type="number" step="1" min="0" max="120" inputmode="numeric" formControlName="graceMinutes"
               [attr.aria-invalid]="invalid('graceMinutes')" />
-            @if (invalid('graceMinutes')) { <p class="field-error">Between 0 and 120.</p> } @else { <p class="field-hint">Free stay before billing.</p> }
+            @if (invalid('graceMinutes')) { <p class="field-error">{{ t('pricing.graceRange') }}</p> } @else { <p class="field-hint">{{ t('pricing.graceHint') }}</p> }
           </div>
           <div>
-            <label class="field-label" for="p-round">Rounding block (min)</label>
+            <label class="field-label" for="p-round">{{ t('pricing.roundingLabel') }}</label>
             <input id="p-round" class="field data" type="number" step="1" min="5" max="60" inputmode="numeric" formControlName="roundingMinutes"
               [attr.aria-invalid]="invalid('roundingMinutes')" />
-            @if (invalid('roundingMinutes')) { <p class="field-error">Between 5 and 60.</p> } @else { <p class="field-hint">Billed time rounds up to this.</p> }
+            @if (invalid('roundingMinutes')) { <p class="field-error">{{ t('pricing.roundingRange') }}</p> } @else { <p class="field-hint">{{ t('pricing.roundingHint') }}</p> }
           </div>
         </div>
         <div class="flex flex-col-reverse gap-2 border-t border-border px-6 py-4 sm:flex-row sm:justify-end">
-          <button type="button" class="btn btn-secondary" (click)="editing.set(false)" [disabled]="saving()">Cancel</button>
-          <button type="submit" class="btn btn-primary" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save rates' }}</button>
+          <button type="button" class="btn btn-secondary" (click)="editing.set(false)" [disabled]="saving()">{{ t('common.cancel') }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">{{ saving() ? t('common.saving') : t('pricing.save') }}</button>
         </div>
       </form>
     }

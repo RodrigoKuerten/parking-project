@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCircleAlert, lucideCircleCheck, lucideInfo, lucideX } from '@ng-icons/lucide';
 import { ToastService } from '../core/toast.service';
+import { t } from '../core/i18n';
 
 @Component({
   selector: 'app-toast-container',
@@ -19,7 +20,7 @@ import { ToastService } from '../core/toast.service';
             <ng-icon [name]="toneIcon[toast.tone]" size="18" aria-hidden="true" />
           </span>
           <p class="flex-1 text-sm text-foreground">{{ toast.message }}</p>
-          <button type="button" class="-m-1 rounded-md p-1 text-muted hover:text-foreground" aria-label="Dismiss notification" (click)="toasts.dismiss(toast.id)">
+          <button type="button" class="-m-1 rounded-md p-1 text-muted hover:text-foreground" [attr.aria-label]="t('toast.dismiss')" (click)="toasts.dismiss(toast.id)">
             <ng-icon name="lucideX" size="16" />
           </button>
         </div>
@@ -33,6 +34,7 @@ import { ToastService } from '../core/toast.service';
 })
 export class ToastContainer {
   protected readonly toasts = inject(ToastService);
+  protected readonly t = t;
   protected readonly toneIcon = { success: 'lucideCircleCheck', error: 'lucideCircleAlert', info: 'lucideInfo' } as const;
   protected readonly toneClass = { success: 'text-success', error: 'text-danger', info: 'text-info' } as const;
 }

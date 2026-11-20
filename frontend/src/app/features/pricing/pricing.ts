@@ -8,6 +8,7 @@ import { errorMessage } from '../../core/error';
 import { formatCurrency, formatShortDateTime } from '../../core/format';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
+import { t } from '../../core/i18n';
 import { EmptyState } from '../../shared/empty-state';
 import { PageHeader } from '../../shared/page-header';
 
@@ -31,6 +32,7 @@ export class PricingPage implements OnInit {
   protected readonly saving = signal(false);
   protected readonly formError = signal<string | null>(null);
   protected readonly fmt = { formatCurrency, formatShortDateTime };
+  protected readonly t = t;
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     firstHourRate: [0, MONEY],
@@ -88,7 +90,7 @@ export class PricingPage implements OnInit {
         this.config.set(config);
         this.saving.set(false);
         this.editing.set(false);
-        this.toast.show('Pricing updated. New rates apply to the next check-out.');
+        this.toast.show(t('pricing.updated'));
       },
       error: error => {
         this.saving.set(false);

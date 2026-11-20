@@ -6,6 +6,7 @@ import { lucideArrowRight, lucideRefreshCw } from '@ng-icons/lucide';
 import { ApiService } from '../../core/api.service';
 import { Dashboard, ParkingSpot } from '../../core/models';
 import { errorMessage } from '../../core/error';
+import { t } from '../../core/i18n';
 import { formatCurrency, formatDuration, formatPercent, formatShortDateTime, formatTime } from '../../core/format';
 import { MetricStrip, Metric } from '../../shared/metric-strip';
 import { PageHeader } from '../../shared/page-header';
@@ -32,22 +33,25 @@ export class DashboardPage implements OnInit {
   protected readonly updatedAt = signal<Date | null>(null);
 
   protected readonly fmt = { formatCurrency, formatDuration, formatShortDateTime, formatTime };
+  protected readonly t = t;
 
   protected readonly metrics = computed<Metric[]>(() => {
     const d = this.data();
     return [
       {
-        label: 'Occupancy',
+        label: t('metric.occupancy'),
         value: d ? formatPercent(d.occupancyRate) : '—',
-        hint: d ? `${d.occupiedSpots} of ${d.totalSpots} spots` : undefined,
+        hint: d ? t('metric.occupancyHint', { occupied: d.occupiedSpots, total: d.totalSpots }) : undefined,
         tone: 'neutral'
       },
-      { label: 'Available spots', value: d ? String(d.availableSpots) : '—', tone: 'free' },
-      { label: 'Parked vehicles', value: d ? String(d.parkedVehicles) : '—', tone: 'occupied' },
+      { label: t('metric.available'), value: d ? String(d.availableSpots) : '—', tone: 'free' },
+      { label: t('metric.parked'), value: d ? String(d.parkedVehicles) : '—', tone: 'occupied' },
       {
-        label: 'Revenue today',
+        label: t('metric.revenueToday'),
         value: d ? formatCurrency(d.revenueToday) : '—',
-        hint: d ? `${d.checkOutsToday} check-out${d.checkOutsToday === 1 ? '' : 's'}` : undefined
+        hint: d
+          ? t(d.checkOutsToday === 1 ? 'metric.checkOutOne' : 'metric.checkOutOther', { count: d.checkOutsToday })
+          : undefined
       }
     ];
   });
