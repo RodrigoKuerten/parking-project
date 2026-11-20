@@ -1,5 +1,5 @@
 <div class="page-enter">
-  <app-page-header title="Spots" description="The lot at a glance. Occupied bays show the plate parked in them." />
+  <app-page-header [title]="t('nav.spots')" [description]="t('spots.desc')" />
 
   <app-metric-strip [metrics]="metrics()" [loading]="loading() && spots().length === 0" />
 
@@ -7,13 +7,13 @@
     <section class="panel" aria-labelledby="map-title">
       <div class="panel-header flex-wrap">
         <div>
-          <h2 id="map-title" class="panel-title">Lot map</h2>
-          <p class="panel-description">{{ visible().length }} spot(s) shown</p>
+          <h2 id="map-title" class="panel-title">{{ t('spots.lotMap') }}</h2>
+          <p class="panel-description">{{ t('spots.shown', { count: visible().length }) }}</p>
         </div>
-        <div class="segmented" role="group" aria-label="Filter spots by status">
+        <div class="segmented" role="group" [attr.aria-label]="t('spots.filterAria')">
           @for (f of filters; track f.value) {
             <button type="button" [attr.aria-pressed]="filter() === f.value" (click)="filter.set(f.value)">
-              {{ f.label }} <span class="data text-xs text-muted">{{ counts()[f.value] }}</span>
+              {{ t(f.label) }} <span class="data text-xs text-muted">{{ counts()[f.value] }}</span>
             </button>
           }
         </div>
@@ -26,16 +26,16 @@
             }
           </div>
         } @else if (error()) {
-          <app-empty-state icon="lucideCircleAlert" tone="error" title="Couldn't load spots" [description]="error()!">
-            <button type="button" class="btn btn-secondary btn-sm" (click)="load()">Try again</button>
+          <app-empty-state icon="lucideCircleAlert" tone="error" [title]="t('spots.errorTitle')" [description]="error()!">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="load()">{{ t('common.tryAgain') }}</button>
           </app-empty-state>
         } @else if (visible().length === 0) {
           <app-empty-state
-            [title]="spots().length === 0 ? 'No spots yet' : 'No spots match this filter'"
-            [description]="spots().length === 0 ? 'Add the first spot to start operating.' : 'Try another status.'"
+            [title]="spots().length === 0 ? t('spots.empty') : t('spots.emptyFilter')"
+            [description]="spots().length === 0 ? t('spots.emptyHint') : t('spots.filterHint')"
           />
         } @else {
-          <ul class="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8" aria-label="Parking spots">
+          <ul class="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8" [attr.aria-label]="t('dashboard.spotsAria')">
             @for (spot of visible(); track spot.id) {
               <li><app-spot-tile [spot]="spot" /></li>
             }
@@ -48,8 +48,8 @@
       <section class="panel self-start" aria-labelledby="add-title">
         <div class="panel-header">
           <div>
-            <h2 id="add-title" class="panel-title">Add spot</h2>
-            <p class="panel-description">Grow the lot's capacity.</p>
+            <h2 id="add-title" class="panel-title">{{ t('spots.addTitle') }}</h2>
+            <p class="panel-description">{{ t('spots.addDesc') }}</p>
           </div>
         </div>
         <form class="space-y-4 px-6 pt-2 pb-6" [formGroup]="form" (ngSubmit)="addSpot()" novalidate>
@@ -57,18 +57,18 @@
             <p class="alert-error" role="alert">{{ formError() }}</p>
           }
           <div>
-            <label class="field-label" for="spot-number">Spot number</label>
+            <label class="field-label" for="spot-number">{{ t('spots.number') }}</label>
             <input id="spot-number" class="field data uppercase" maxlength="10" autocomplete="off" placeholder="A-21" formControlName="number"
               aria-describedby="spot-number-hint"
               [attr.aria-invalid]="form.controls.number.invalid && form.controls.number.touched" />
             @if (form.controls.number.invalid && form.controls.number.touched) {
-              <p class="field-error">Use up to 10 letters, numbers or hyphens.</p>
+              <p class="field-error">{{ t('spots.numberError') }}</p>
             } @else {
-              <p id="spot-number-hint" class="field-hint">Letters, numbers or hyphens. Must be unique.</p>
+              <p id="spot-number-hint" class="field-hint">{{ t('spots.numberHint') }}</p>
             }
           </div>
           <button type="submit" class="btn btn-primary w-full" [disabled]="saving()">
-            <ng-icon name="lucidePlus" size="16" aria-hidden="true" /> {{ saving() ? 'Adding…' : 'Add spot' }}
+            <ng-icon name="lucidePlus" size="16" aria-hidden="true" /> {{ saving() ? t('spots.adding') : t('spots.add') }}
           </button>
         </form>
       </section>

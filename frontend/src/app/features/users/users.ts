@@ -13,6 +13,7 @@ import { EmptyState } from '../../shared/empty-state';
 import { Modal } from '../../shared/modal';
 import { PageHeader } from '../../shared/page-header';
 import { PASSWORD_PATTERN } from '../../shared/validation';
+import { t } from '../../core/i18n';
 
 @Component({
   selector: 'app-users',
@@ -25,6 +26,7 @@ export class UsersPage implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly session = inject(SessionService);
 
+  protected readonly t = t;
   protected readonly roles: UserRole[] = ['ADMIN', 'MANAGER', 'ATTENDANT'];
   protected readonly roleLabel = roleLabel;
   protected readonly roleBadgeClass = roleBadgeClass;
@@ -129,7 +131,7 @@ export class UsersPage implements OnInit {
         if (saved.id === this.currentUserId()) {
           this.session.updateUser(saved);
         }
-        this.toast.show(target === 'new' ? `Account created for ${saved.name}.` : `${saved.name} updated.`);
+        this.toast.show(target === 'new' ? t('users.created', { name: saved.name }) : t('users.updated', { name: saved.name }));
       },
       error: error => {
         this.saving.set(false);

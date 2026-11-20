@@ -1,7 +1,7 @@
 <a
   href="#main"
   class="sr-only z-[70] rounded-md bg-primary px-4 py-2 font-medium text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
-  >Skip to content</a
+  >{{ t('shell.skip') }}</a
 >
 
 <div class="min-h-dvh bg-subtle lg:grid lg:grid-cols-[256px_1fr]">
@@ -15,7 +15,7 @@
     class="fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col border-r border-border bg-subtle transition-transform duration-200 ease-(--ease-standard) lg:sticky lg:top-0 lg:z-auto lg:h-dvh lg:w-auto lg:translate-x-0"
     [class.-translate-x-full]="!menuOpen()"
     [class.max-lg:invisible]="!menuOpen()"
-    aria-label="Main navigation"
+    [attr.aria-label]="t('shell.mainNav')"
   >
     <div class="flex h-14 items-center justify-between px-4">
       <a routerLink="/dashboard" class="flex items-center gap-2 rounded-md">
@@ -24,14 +24,14 @@
         </span>
         <span class="text-[15px] font-semibold tracking-tight">Patio</span>
       </a>
-      <button type="button" class="btn btn-ghost btn-icon btn-sm lg:hidden" aria-label="Close menu" (click)="menuOpen.set(false)">
+      <button type="button" class="btn btn-ghost btn-icon btn-sm lg:hidden" [attr.aria-label]="t('shell.closeMenu')" (click)="menuOpen.set(false)">
         <ng-icon name="lucideX" size="18" />
       </button>
     </div>
 
-    <nav class="flex-1 overflow-y-auto px-2 py-2" aria-label="Sections">
+    <nav class="flex-1 overflow-y-auto px-2 py-2" [attr.aria-label]="t('shell.sections')">
       @for (group of nav(); track group.section) {
-        <p class="px-2 pt-3 pb-1.5 text-xs font-medium text-muted">{{ group.section }}</p>
+        <p class="px-2 pt-3 pb-1.5 text-xs font-medium text-muted">{{ t(group.section) }}</p>
         <ul class="space-y-0.5">
           @for (item of group.items; track item.path) {
             <li>
@@ -43,7 +43,7 @@
                 class="nav-item"
               >
                 <ng-icon [name]="item.icon" size="16" aria-hidden="true" />
-                {{ item.label }}
+                {{ t(item.label) }}
               </a>
             </li>
           }
@@ -59,11 +59,20 @@
           <p class="truncate text-xs text-muted">{{ user()?.email }}</p>
         </div>
       </div>
+      <a
+        routerLink="/settings"
+        routerLinkActive="is-active"
+        #settingsLink="routerLinkActive"
+        [attr.aria-current]="settingsLink.isActive ? 'page' : null"
+        class="nav-item w-full"
+      >
+        <ng-icon name="lucideSettings" size="16" aria-hidden="true" /> {{ t('nav.settings') }}
+      </a>
       <button type="button" class="nav-item w-full" (click)="passwordOpen.set(true)">
-        <ng-icon name="lucideKeyRound" size="16" aria-hidden="true" /> Change password
+        <ng-icon name="lucideKeyRound" size="16" aria-hidden="true" /> {{ t('shell.changePassword') }}
       </button>
       <button type="button" class="nav-item w-full" (click)="logout()">
-        <ng-icon name="lucideLogOut" size="16" aria-hidden="true" /> Sign out
+        <ng-icon name="lucideLogOut" size="16" aria-hidden="true" /> {{ t('shell.signOut') }}
       </button>
     </div>
   </aside>
@@ -75,7 +84,7 @@
         <button
           type="button"
           class="btn btn-ghost btn-icon btn-sm -ml-1.5 lg:hidden"
-          aria-label="Open menu"
+          [attr.aria-label]="t('shell.openMenu')"
           aria-controls="sidebar"
           [attr.aria-expanded]="menuOpen()"
           (click)="menuOpen.set(true)"
@@ -89,7 +98,7 @@
           <span class="data hidden text-[13px] text-muted md:inline">{{ today() }} · {{ clock() }}</span>
           <a routerLink="/check-in" class="btn btn-primary btn-sm">
             <ng-icon name="lucidePlus" size="16" aria-hidden="true" />
-            New check-in
+            {{ t('shell.newCheckIn') }}
           </a>
         </div>
       </header>
