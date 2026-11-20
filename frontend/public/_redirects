@@ -1,0 +1,4 @@
+# Cloudflare Pages: forward API calls to the backend (replace the host after deploying Render).
+/api/*  https://<SEU-BACKEND>.onrender.com/api/:splat  200
+# SPA fallback so deep links such as /dashboard load the app.
+/*      /index.html  200
