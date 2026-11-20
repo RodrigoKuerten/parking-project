@@ -12,8 +12,7 @@ The MVP is functional end to end:
 - Verified in a headless browser: admin and attendant login, check-in, checkout with backend-calculated amount, history update, read-only pricing for attendants, blocked `/users` route for attendants.
 - Backend unit tests for pricing, license plates and login throttling.
 - MockMvc integration tests for the auth flow: login, 401/403, token expiry, role changes and account deactivation.
-- Frontend Vitest suite for plate/format helpers, session storage and route guards.
-- Frontend production build passes.
+- Frontend production build passes (no automated frontend tests yet).
 - Responsive pass at 320, 768 and 1024 px across all screens (plus 1280 and 1440 px on the dashboard) in headless Chromium, with no horizontal page overflow.
 - Self-service password change for the signed-in account.
 - A `prod` profile that requires `JWT_SECRET` and `ADMIN_PASSWORD` and disables demo data; the login page no longer exposes demo credentials.
@@ -33,7 +32,7 @@ Seeded only when `DEMO_DATA=true`. The login page no longer displays them.
 ## What remains before delivery
 
 1. **Manual responsive review on real devices.** 320, 768 and 1024 px now pass across all screens (dashboard also at 1280 and 1440) in headless Chromium; a final pass on a real phone is still pending.
-2. **Automated frontend tests.** Core logic is covered with Vitest; expand coverage to feature components and add one end-to-end happy path (check-in to checkout).
+2. **Automated frontend tests.** None yet: add a test runner (Vitest) with coverage for plate/format helpers, session storage and route guards, plus one end-to-end happy path (check-in to checkout).
 3. **Backend integration tests for auth.** Done with MockMvc web-slice tests. Add Testcontainers coverage if persistence-level behavior (Flyway, unique keys, locks) needs a real MySQL in CI.
 4. **Production security hardening.**
    - Done: `prod` profile requires `JWT_SECRET` and `ADMIN_PASSWORD`, demo data/accounts are disabled, and the login page has no demo panel.

@@ -186,11 +186,10 @@ cd backend
 mvn test
 
 cd ../frontend
-npm test
 npm run build
 ```
 
-Backend tests cover the pricing calculation, license plate validation, login throttling and the HTTP auth flow (login, 401/403, token expiry, role changes and account deactivation) through MockMvc. Frontend tests cover plate/format helpers, session storage and route guards with Vitest.
+Backend tests cover the pricing calculation, license plate validation, login throttling and the HTTP auth flow (login, 401/403, token expiry, role changes and account deactivation) through MockMvc. The frontend has no automated tests yet.
 
 ## API
 
