@@ -1,176 +1,133 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideArrowRight,
-  lucideCarFront,
-  lucideCircleAlert,
-  lucideCircleCheck,
-  lucideClock,
-  lucideLoaderCircle,
-  lucideRefreshCw,
-  lucideSearch,
-  lucideX
-} from '@ng-icons/lucide';
+import { lucideClock, lucideReceipt, lucideRefreshCw, lucideSearch } from '@ng-icons/lucide';
 import { ApiService } from '../../core/api.service';
-import { errorMessage } from '../../core/error';
-import {
-  formatCurrency,
-  formatDuration,
-  formatShortDateTime,
-  formatTime
-} from '../../core/format';
 import { CheckOutPreview, OpenSession } from '../../core/models';
+import { errorMessage } from '../../core/error';
+import { formatCurrency, formatDuration, formatShortDateTime, formatTime, normalizePlate } from '../../core/format';
 import { ToastService } from '../../core/toast.service';
-import { ModalComponent } from '../../shared/modal';
-import { PlateComponent } from '../../shared/plate';
+import { EmptyState } from '../../shared/empty-state';
+import { Modal } from '../../shared/modal';
+import { PageHeader } from '../../shared/page-header';
+import { Plate } from '../../shared/plate';
+
+type CheckoutStep = 'loading' | 'preview' | 'saving' | 'done' | 'error';
 
 @Component({
   selector: 'app-yard',
-  imports: [RouterLink, NgIcon, ModalComponent, PlateComponent],
-  viewProviders: [
-    provideIcons({
-      lucideArrowRight,
-      lucideCarFront,
-      lucideCircleAlert,
-      lucideCircleCheck,
-      lucideClock,
-      lucideLoaderCircle,
-      lucideRefreshCw,
-      lucideSearch,
-      lucideX
-    })
-  ],
+  imports: [RouterLink, NgIcon, EmptyState, Modal, PageHeader, Plate],
+  providers: [provideIcons({ lucideClock, lucideReceipt, lucideRefreshCw, lucideSearch })],
   templateUrl: './yard.html'
 })
-export class YardComponent implements OnInit {
+export class YardPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
-  readonly sessions = signal<OpenSession[]>([]);
-  readonly search = signal('');
-  readonly now = signal(Date.now());
+  protected readonly sessions = signal<OpenSession[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly query = signal('');
 
-  readonly selected = signal<OpenSession | null>(null);
-  readonly preview = signal<CheckOutPreview | null>(null);
-  readonly previewLoading = signal(false);
-  readonly previewError = signal<string | null>(null);
-  readonly actionError = signal<string | null>(null);
-  readonly confirming = signal(false);
-  readonly completed = signal<CheckOutPreview | null>(null);
+  protected readonly checkoutPlate = signal<string | null>(null);
+  protected readonly step = signal<CheckoutStep>('loading');
+  protected readonly preview = signal<CheckOutPreview | null>(null);
+  protected readonly checkoutError = signal<string | null>(null);
 
-  readonly filteredSessions = computed(() => {
-    const term = this.search().trim().toLowerCase();
-    if (!term) {
-      return this.sessions();
+  protected readonly fmt = { formatCurrency, formatDuration, formatShortDateTime, formatTime };
+
+  protected readonly filtered = computed(() => {
+    const q = this.query().trim().toUpperCase();
+    const plateQ = normalizePlate(q);
+    const rows = [...this.sessions()].sort((a, b) => b.parkingMinutes - a.parkingMinutes);
+    if (!q) {
+      return rows;
     }
-    return this.sessions().filter(
-      session =>
-        session.licensePlate.toLowerCase().includes(term) ||
-        session.model.toLowerCase().includes(term) ||
-        session.color.toLowerCase().includes(term)
+    return rows.filter(
+      s => (plateQ && s.licensePlate.includes(plateQ)) || s.spotNumber.toUpperCase().includes(q) || s.model.toUpperCase().includes(q)
     );
   });
-
-  readonly formatCurrency = formatCurrency;
-  readonly formatDuration = formatDuration;
-  readonly formatShortDateTime = formatShortDateTime;
-  readonly formatTime = formatTime;
+  protected readonly estimatedTotal = computed(() => this.sessions().reduce((sum, s) => sum + (s.estimatedAmount ?? 0), 0));
 
   ngOnInit(): void {
     this.load();
-    const timer = setInterval(() => this.now.set(Date.now()), 30_000);
+    const timer = setInterval(() => this.load(true), 60_000);
     this.destroyRef.onDestroy(() => clearInterval(timer));
   }
 
-  load(showLoading = true): void {
-    if (showLoading) {
+  protected load(silent = false): void {
+    if (!silent) {
       this.loading.set(true);
     }
-    this.error.set(null);
     this.api.getOpenSessions().subscribe({
       next: sessions => {
         this.sessions.set(sessions);
+        this.error.set(null);
         this.loading.set(false);
       },
       error: error => {
-        this.error.set(errorMessage(error));
         this.loading.set(false);
+        if (!silent) {
+          this.error.set(errorMessage(error));
+        }
       }
     });
   }
 
-  setSearch(event: Event): void {
-    this.search.set((event.target as HTMLInputElement).value);
+  protected onSearch(event: Event): void {
+    this.query.set((event.target as HTMLInputElement).value);
   }
 
-  clearSearch(): void {
-    this.search.set('');
-  }
-
-  elapsedMinutes(session: OpenSession): number {
-    return Math.max(0, Math.floor((this.now() - new Date(session.entryAt).getTime()) / 60_000));
-  }
-
-  openCheckout(session: OpenSession): void {
-    this.selected.set(session);
-    this.preview.set(null);
-    this.previewError.set(null);
-    this.actionError.set(null);
-    this.completed.set(null);
-    this.loadPreview(session);
-  }
-
-  closeCheckout(): void {
-    if (this.confirming()) {
-      return;
+  /** Enter in the search box with exactly one match opens its checkout. */
+  protected onSearchEnter(): void {
+    const rows = this.filtered();
+    if (rows.length === 1) {
+      this.openCheckout(rows[0].licensePlate);
     }
-    this.selected.set(null);
-    this.preview.set(null);
-    this.completed.set(null);
-    this.previewError.set(null);
-    this.actionError.set(null);
   }
 
-  loadPreview(session: OpenSession): void {
-    this.previewLoading.set(true);
-    this.previewError.set(null);
-    this.actionError.set(null);
-
-    this.api.previewCheckOut(session.licensePlate).subscribe({
+  protected openCheckout(plate: string): void {
+    this.checkoutPlate.set(plate);
+    this.step.set('loading');
+    this.preview.set(null);
+    this.checkoutError.set(null);
+    this.api.previewCheckOut(plate).subscribe({
       next: preview => {
         this.preview.set(preview);
-        this.previewLoading.set(false);
+        this.step.set('preview');
       },
       error: error => {
-        this.previewError.set(errorMessage(error));
-        this.previewLoading.set(false);
+        this.checkoutError.set(errorMessage(error));
+        this.step.set('error');
       }
     });
   }
 
-  confirmCheckout(): void {
-    const preview = this.preview();
-    if (!preview) {
+  protected confirmCheckout(): void {
+    const plate = this.checkoutPlate();
+    if (!plate) {
       return;
     }
-    this.confirming.set(true);
-    this.actionError.set(null);
-
-    this.api.checkOut(preview.licensePlate).subscribe({
-      next: receipt => {
-        this.confirming.set(false);
-        this.completed.set(receipt);
-        this.toast.show(`Check-out complete. Spot ${receipt.spotNumber} is available again.`);
-        this.load(false);
+    this.step.set('saving');
+    this.api.checkOut(plate).subscribe({
+      next: result => {
+        this.preview.set(result);
+        this.step.set('done');
+        this.toast.show(`${result.licensePlate} checked out · ${formatCurrency(result.amount)}.`);
+        this.load(true);
       },
       error: error => {
-        this.confirming.set(false);
-        this.actionError.set(errorMessage(error));
+        this.checkoutError.set(errorMessage(error));
+        this.step.set('error');
+        this.load(true);
       }
     });
+  }
+
+  protected closeCheckout(): void {
+    if (this.step() !== 'saving') {
+      this.checkoutPlate.set(null);
+    }
   }
 }

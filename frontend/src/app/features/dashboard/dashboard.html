@@ -1,236 +1,117 @@
-@if (loading()) {
-  <div class="page" role="status" aria-label="Loading dashboard">
-    <div class="h-24 animate-pulse rounded-card border border-line bg-surface"></div>
-    <div class="grid gap-4 lg:grid-cols-12">
-      <div class="h-80 animate-pulse rounded-card border border-line bg-surface lg:col-span-8"></div>
-      <div class="h-80 animate-pulse rounded-card bg-asphalt/90 lg:col-span-4"></div>
-    </div>
-    <div class="grid gap-4 lg:grid-cols-12">
-      <div class="h-72 animate-pulse rounded-card border border-line bg-surface lg:col-span-8"></div>
-      <div class="h-72 animate-pulse rounded-card border border-line bg-surface lg:col-span-4"></div>
-    </div>
-  </div>
-} @else if (error()) {
-  <div class="page">
-    <div class="panel flex flex-col items-center justify-center px-6 py-16 text-center">
-      <span class="grid h-11 w-11 place-items-center rounded-full bg-occupied-soft text-occupied">
-        <ng-icon name="lucideCircleAlert" size="22" />
-      </span>
-      <h2 class="mt-4 text-lg font-semibold">Could not load the dashboard</h2>
-      <p class="mt-1 max-w-sm text-sm text-muted">{{ error() }}</p>
-      <button type="button" class="btn btn-secondary mt-5" (click)="load()">
-        <ng-icon name="lucideRefreshCw" size="16" />
-        Try again
-      </button>
-    </div>
-  </div>
-} @else if (dashboard(); as data) {
-  <div class="page">
-    <section class="stat-strip" aria-label="Lot metrics">
-      <div class="stat-cell">
-        <p class="stat-label">Total spots</p>
-        <p class="stat-value">{{ data.totalSpots }}</p>
-      </div>
-      <div class="stat-cell">
-        <p class="stat-label">Available now</p>
-        <p class="stat-value text-available">{{ data.availableSpots }}</p>
-      </div>
-      <div class="stat-cell">
-        <p class="stat-label">Vehicles in the yard</p>
-        <p class="stat-value">{{ data.parkedVehicles }}</p>
-      </div>
-      <div class="stat-cell">
-        <div class="flex items-center justify-between gap-2">
-          <p class="stat-label">Occupancy</p>
-          <span class="font-mono text-xs font-semibold tabular-nums">{{ formatPercent(data.occupancyRate) }}</span>
-        </div>
-        <p class="stat-value">{{ data.occupiedSpots }}<span class="text-sm font-medium text-muted">/{{ data.totalSpots }}</span></p>
-        <div class="mt-2 h-1 w-full bg-line">
-          <div class="h-full bg-asphalt transition-[width] duration-500" [style.width.%]="data.occupancyRate"></div>
-        </div>
-      </div>
-    </section>
+<div class="page-enter">
+  <app-page-header title="Dashboard" description="Live occupancy and today's movement. Refreshes every 30 seconds.">
+    <button type="button" class="btn btn-secondary" (click)="load()" [disabled]="loading()">
+      <ng-icon name="lucideRefreshCw" size="16" aria-hidden="true" [class.animate-spin]="loading()" />
+      Refresh
+    </button>
+  </app-page-header>
 
-    <div class="grid gap-4 lg:grid-cols-12">
-      <section class="panel lg:col-span-8">
+  @if (error()) {
+    <div class="panel">
+      <app-empty-state icon="lucideCircleAlert" tone="error" title="Couldn't load the dashboard" [description]="error()!">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="load()">Try again</button>
+      </app-empty-state>
+    </div>
+  } @else {
+    <app-metric-strip [metrics]="metrics()" [loading]="loading() && !data()" />
+
+    <div class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <section class="panel" aria-labelledby="occupancy-title">
         <div class="panel-header">
           <div>
-            <h2 class="section-title">Yard occupancy</h2>
-            <p class="section-caption">{{ data.occupiedSpots }} of {{ data.totalSpots }} spots occupied</p>
+            <h2 id="occupancy-title" class="panel-title">Occupancy</h2>
+            <p class="panel-description">{{ data()?.occupiedSpots ?? 0 }} of {{ data()?.totalSpots ?? 0 }} spots in use</p>
           </div>
-          <div class="flex items-center gap-3">
-            <div class="hidden text-right sm:block">
-              <p class="font-mono text-xl font-semibold leading-none tabular-nums">{{ formatPercent(data.occupancyRate) }}</p>
-              <p class="mt-1 text-[11px] text-muted">Live occupancy</p>
-            </div>
-            <a routerLink="/spots" class="btn btn-secondary btn-sm">
-              All spots
-              <ng-icon name="lucideArrowRight" size="14" />
-            </a>
-          </div>
-        </div>
-        <div class="p-5">
-          <div class="grid grid-cols-5 gap-1.5 sm:grid-cols-10">
-            @for (spot of spots(); track spot.id) {
-              <app-spot-tile [spot]="spot" [dense]="true" />
-            }
-          </div>
-          <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-muted">
-            <span class="flex items-center gap-1.5">
-              <span class="h-2 w-3 bg-asphalt"></span>
-              Occupied
-            </span>
-            <span class="flex items-center gap-1.5">
-              <span class="h-2 w-3 border border-line bg-white"></span>
-              Available
-            </span>
-            <span class="ml-auto">Select a free bay to start a check-in.</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="relative flex h-full flex-col overflow-hidden rounded-card bg-asphalt p-5 text-white lg:col-span-4">
-        <div class="absolute inset-x-0 top-0 h-[3px] bg-signal"></div>
-        <p class="text-xs font-medium text-white/55">Revenue today</p>
-        <p class="mt-2 font-mono text-[34px] font-semibold leading-none tracking-tight">
-          {{ formatCurrency(data.revenueToday) }}
-        </p>
-        <div class="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
-          <div>
-            <p class="text-[11px] text-white/45">Check-outs</p>
-            <p class="mt-1 font-mono text-lg font-semibold">{{ data.checkOutsToday }}</p>
-          </div>
-          <div class="text-right">
-            <p class="text-[11px] text-white/45">In the yard</p>
-            <p class="mt-1 font-mono text-lg font-semibold">{{ data.parkedVehicles }}</p>
-          </div>
-        </div>
-
-        @if (recentCheckOuts().length > 0) {
-          <div class="mt-5 border-t border-white/10 pt-4">
-            <p class="text-[11px] font-medium text-white/45">Latest check-outs</p>
-            <ul class="mt-2 space-y-2">
-              @for (movement of recentCheckOuts(); track movement.id) {
-                <li class="flex items-center justify-between gap-3 text-xs">
-                  <span class="font-mono text-white/80">{{ movement.licensePlate }}</span>
-                  <span class="font-mono font-semibold text-signal">{{ formatCurrency(movement.amount) }}</span>
-                </li>
-              }
-            </ul>
-          </div>
-        }
-
-        <a routerLink="/history" class="mt-auto inline-flex items-center gap-1 pt-5 text-xs font-semibold text-signal transition-colors hover:text-white">
-          View movement history
-          <ng-icon name="lucideArrowRight" size="14" />
-        </a>
-      </section>
-    </div>
-
-    <div class="grid gap-4 lg:grid-cols-12">
-      <section class="panel overflow-hidden lg:col-span-8">
-        <div class="panel-header">
-          <div>
-            <h2 class="section-title">Recent movements</h2>
-            <p class="section-caption">Latest activity across the lot</p>
-          </div>
-          <a routerLink="/history" class="link-quiet">
-            Full history
-            <ng-icon name="lucideArrowRight" size="13" />
+          <a routerLink="/spots" class="btn btn-ghost btn-sm">
+            View all <ng-icon name="lucideArrowRight" size="14" aria-hidden="true" />
           </a>
         </div>
-
-        @if (data.recentMovements.length === 0) {
-          <div class="px-5 py-12 text-center">
-            <span class="mx-auto grid h-10 w-10 place-items-center rounded-full bg-paper text-muted">
-              <ng-icon name="lucideCarFront" size="20" />
-            </span>
-            <p class="mt-3 text-sm font-medium">No movements yet</p>
-            <p class="mt-1 text-xs text-muted">Register the first check-in to start the day.</p>
-            <a routerLink="/check-in" class="btn btn-primary btn-sm mt-4">Check in vehicle</a>
+        <div class="px-6 pb-6">
+          <div class="mb-5 h-1.5 overflow-hidden rounded-full bg-accent" role="progressbar" aria-label="Occupancy rate"
+            aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="data()?.occupancyRate ?? 0">
+            <div class="h-full rounded-full bg-primary transition-[width] duration-300" [style.width]="occupancyWidth()"></div>
           </div>
-        } @else {
-          <div class="overflow-x-auto">
-            <table class="w-full border-collapse">
-              <thead>
-                <tr class="bg-paper/60">
-                  <th scope="col" class="table-head">Vehicle</th>
-                  <th scope="col" class="table-head">Spot</th>
-                  <th scope="col" class="table-head hidden sm:table-cell">Entry</th>
-                  <th scope="col" class="table-head hidden sm:table-cell">Status</th>
-                  <th scope="col" class="table-head text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-line">
-                @for (movement of data.recentMovements; track movement.id) {
-                  <tr class="transition-colors hover:bg-paper/60">
-                    <td class="cell">
-                      <div class="flex items-center gap-2.5">
-                        <app-plate [value]="movement.licensePlate" />
-                        <span class="hidden text-xs text-muted md:inline">{{ movement.model }}</span>
-                      </div>
-                    </td>
-                    <td class="cell font-mono text-xs">{{ movement.spotNumber }}</td>
-                    <td class="cell hidden whitespace-nowrap text-xs text-muted sm:table-cell">{{ formatShortDateTime(movement.entryAt) }}</td>
-                    <td class="cell hidden sm:table-cell">
-                      @if (movement.status === 'OPEN') {
-                        <span class="badge bg-asphalt text-white">In yard</span>
-                      } @else {
-                        <span class="badge badge-free">Completed</span>
-                      }
-                    </td>
-                    <td class="cell text-right font-mono text-xs font-semibold">
-                      {{ movement.status === 'CLOSED' ? formatCurrency(movement.amount) : '—' }}
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
+          @if (loading() && spots().length === 0) {
+            <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              @for (i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; track i) {
+                <div class="skeleton h-[72px]"></div>
+              }
+            </div>
+          } @else if (spots().length === 0) {
+            <app-empty-state title="No spots yet" description="Add parking spots to start tracking occupancy." />
+          } @else {
+            <ul class="grid grid-cols-3 gap-2 sm:grid-cols-5 xl:grid-cols-4 2xl:grid-cols-5" aria-label="Parking spots">
+              @for (spot of spots(); track spot.id) {
+                <li><app-spot-tile [spot]="spot" /></li>
+              }
+            </ul>
+          }
+        </div>
       </section>
 
-      <aside class="space-y-4 lg:col-span-4">
-        <section class="panel p-5">
-          <h2 class="section-title">Quick actions</h2>
-          <div class="mt-4 grid gap-2">
-            <a routerLink="/check-in" class="btn btn-primary w-full">
-              <ng-icon name="lucideLogIn" size="16" />
-              Check in vehicle
-            </a>
-            <a routerLink="/yard" class="btn btn-secondary w-full">
-              <ng-icon name="lucideLogOut" size="16" />
-              Open yard
-            </a>
-          </div>
-        </section>
-
-        <section class="panel border-l-[3px] border-l-signal p-5">
-          <div class="flex items-start justify-between gap-2">
-            <h2 class="section-title">Current rates</h2>
-            <a routerLink="/pricing" class="link-quiet">{{ canManagePricing() ? 'Edit' : 'View' }}</a>
-          </div>
-          @if (pricing(); as rates) {
-            <dl class="mt-4 space-y-2 text-sm">
-              <div class="flex items-center justify-between">
-                <dt class="text-muted">First hour</dt>
-                <dd class="font-mono font-semibold">{{ formatCurrency(rates.firstHourRate) }}</dd>
-              </div>
-              <div class="flex items-center justify-between">
-                <dt class="text-muted">Additional hour</dt>
-                <dd class="font-mono font-semibold">{{ formatCurrency(rates.additionalHourRate) }}</dd>
-              </div>
-              <div class="flex items-center justify-between border-t border-line pt-2">
-                <dt class="text-muted">Daily cap</dt>
-                <dd class="font-mono font-semibold">{{ formatCurrency(rates.dailyRate) }}</dd>
-              </div>
-            </dl>
-            <p class="mt-3 text-[11px] leading-relaxed text-muted">
-              Time is rounded up in {{ rates.roundingMinutes }}-minute blocks. The first {{ rates.graceMinutes }} minutes are free.
+      <section class="panel flex min-w-0 flex-col" aria-labelledby="movements-title">
+        <div class="panel-header">
+          <div>
+            <h2 id="movements-title" class="panel-title">Recent movements</h2>
+            <p class="panel-description">
+              Latest check-ins and check-outs
+              @if (updatedAt()) {
+                · updated <span class="data">{{ fmt.formatTime(updatedAt()!.toISOString()) }}</span>
+              }
             </p>
+          </div>
+          <a routerLink="/history" class="btn btn-ghost btn-sm">
+            History <ng-icon name="lucideArrowRight" size="14" aria-hidden="true" />
+          </a>
+        </div>
+        <div class="px-6 pb-6">
+          @if (loading() && !data()) {
+            <div class="space-y-2">
+              @for (i of [1, 2, 3, 4, 5]; track i) {
+                <div class="skeleton h-10"></div>
+              }
+            </div>
+          } @else if (!data()?.recentMovements?.length) {
+            <app-empty-state title="No movements yet" description="Check-ins and check-outs will appear here.">
+              <a routerLink="/check-in" class="btn btn-primary btn-sm">New check-in</a>
+            </app-empty-state>
+          } @else {
+            <div class="table-frame max-h-[460px]">
+              <table class="table">
+                <caption class="sr-only">Latest check-ins and check-outs</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Plate</th>
+                    <th scope="col" class="hidden md:table-cell">Vehicle</th>
+                    <th scope="col">Spot</th>
+                    <th scope="col" class="hidden sm:table-cell">Entry</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="text-right!">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of data()!.recentMovements; track m.id) {
+                    <tr>
+                      <td><app-plate [value]="m.licensePlate" /></td>
+                      <td class="hidden text-muted md:table-cell">{{ m.model }} · {{ m.color }}</td>
+                      <td class="data">{{ m.spotNumber }}</td>
+                      <td class="data hidden text-muted sm:table-cell">{{ fmt.formatShortDateTime(m.entryAt) }}</td>
+                      <td>
+                        @if (m.status === 'OPEN') {
+                          <span class="badge"><span class="dot bg-danger"></span>Parked</span>
+                        } @else {
+                          <span class="badge"><span class="dot bg-success"></span>Closed</span>
+                        }
+                      </td>
+                      <td class="data text-right font-medium">{{ m.status === 'OPEN' ? '—' : fmt.formatCurrency(m.amount) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           }
-        </section>
-      </aside>
+        </div>
+      </section>
     </div>
-  </div>
-}
+  }
+</div>
