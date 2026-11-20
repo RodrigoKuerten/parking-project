@@ -1,6 +1,7 @@
 import { Component, ElementRef, OnDestroy, OnInit, input, output, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideX } from '@ng-icons/lucide';
+import { t } from '../core/i18n';
 
 let sequence = 0;
 const FOCUSABLE =
@@ -31,7 +32,7 @@ const FOCUSABLE =
             }
             <h2 [id]="titleId" class="text-lg leading-none font-semibold tracking-tight">{{ heading() }}</h2>
           </div>
-          <button type="button" class="btn btn-ghost btn-icon -mr-2 -mt-1" aria-label="Close dialog" (click)="closed.emit()">
+          <button type="button" class="btn btn-ghost btn-icon -mr-2 -mt-1" [attr.aria-label]="t('modal.close')" (click)="closed.emit()">
             <ng-icon name="lucideX" size="18" />
           </button>
         </header>
@@ -53,6 +54,7 @@ export class Modal implements OnInit, OnDestroy {
   readonly size = input<'sm' | 'md'>('md');
   readonly closed = output<void>();
 
+  protected readonly t = t;
   protected readonly titleId = `modal-title-${++sequence}`;
   private readonly dialog = viewChild.required<ElementRef<HTMLElement>>('dialog');
   private readonly opener = document.activeElement as HTMLElement | null;
