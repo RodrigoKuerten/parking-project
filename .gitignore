@@ -24,3 +24,6 @@ frontend/coverage/
 # Banco local (quando usado com dados na própria pasta)
 .mysql-data/
 mysql-data/
+
+# Documentação de pesquisa local
+docs/

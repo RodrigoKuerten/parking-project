@@ -1,121 +1,44 @@
-# Patio — Parking Management MVP
+# Patio
+
+Parking management for small lots: spots, vehicle check-in and check-out, server-side billing from configurable rates, and live operational numbers, with role-based access.
 
 **Author:** Rodrigo Kuerten · [rodrigokuerten31@gmail.com](mailto:rodrigokuerten31@gmail.com)
 
-A functional full-stack parking management system for small parking lots. It tracks parking spots, vehicle check-ins and check-outs, calculates charges from configurable pricing rules, and reports live operational metrics from MySQL.
-
-## Stack
-
-- **Backend:** Java 21, Spring Boot 3.5, Spring Data JPA / Hibernate, Bean Validation, Spring Security
-- **Authentication:** JWT (HS256), BCrypt password hashing, role-based authorization
-- **Database:** MySQL 8.4 with Flyway migrations
-- **Frontend:** Angular 22, Tailwind CSS 4, Lucide icons
-- **API:** REST + JSON, CORS configured for local development
+| | |
+|---|---|
+| **Backend** | Java 21, Spring Boot 3.5, Spring Data JPA, Bean Validation, Spring Security (JWT) |
+| **Database** | MySQL 8.4, Flyway migrations |
+| **Frontend** | Angular 22, Tailwind CSS 4, Lucide icons, Geist font |
 
 ## Features
 
-- Dashboard with live occupancy, available spots, parked vehicles, daily revenue, occupancy rate and recent movements
-- Parking spot management and capacity growth
-- Vehicle check-in with license plate validation, duplicate protection, availability checks and automatic spot assignment
-- Vehicle check-out with backend-calculated parking time and amount, preview before confirmation, and automatic spot release
-- Pricing configuration: first hour, additional hour, daily cap, grace period and rounding block
-- Movement history with license plate and date-range filters
-- Transactional check-in/check-out operations, centralized exception handling and DTO-only API contracts
-- MySQL constraints that prevent a spot or vehicle from having two open sessions
-- Sign-in with three roles (Administrator, Manager, Attendant), guarded routes and protected API endpoints
-- Admin user management: create accounts, change roles, activate/deactivate and reset passwords
-- Login throttling, active-account checks, password policy and protection against removing the last administrator
-- Seeded demo users and movements on first run
+- **Dashboard:** occupancy, free spots, parked vehicles, revenue today, lot map and recent movements.
+- **Check-in:** plate validation (legacy `ABC1234` and Mercosul `ABC1D23`), duplicate protection, automatic or manual spot.
+- **Check-out:** the server computes time and amount; the attendant sees a preview before confirming.
+- **Yard, History, Spots:** parked vehicles with estimates, filterable movement history with pagination, lot map with status filters.
+- **Pricing:** first hour, extra hour, daily cap, grace period and rounding block, editable by managers.
+- **Accounts:** three roles, user management, self-service password change, login throttling.
+- **Integrity:** transactional operations and MySQL constraints so a spot or a vehicle never has two open sessions.
 
-## Project structure
+## Quick start
 
-```
-backend/
-  src/main/java/br/com/patio/
-    auth/         login, token issuance and throttling
-    config/       application, bootstrap accounts and demo data
-    dashboard/    operational indicators
-    pricing/      pricing rules and calculator
-    security/     Spring Security, JWT filter and handlers
-    session/      check-in, check-out and history
-    shared/       validation, license plate and error handling
-    spot/         parking spot management
-    user/         accounts and role management
-    vehicle/      vehicle registry
-  src/main/resources/db/migration/   Flyway schema and seeds
-frontend/
-  src/app/
-    core/         API client, auth/session, guards and formatting helpers
-    features/     login, dashboard, spots, check-in, yard, history, pricing, users
-    layout/       application shell
-    shared/       reusable UI components
-```
-
-## Running locally
-
-### Prerequisites
-
-- JDK 21+
-- Maven 3.9+
-- Node.js 22.22+ or 24.15+
-- MySQL 8.4 (Docker or a local installation)
-
-### 1. Start MySQL
-
-With Docker:
+Requirements: JDK 21+, Maven 3.9+, Node.js 22.22+ (or 24.15+), Docker (or a local MySQL 8.4).
 
 ```bash
+# 1. database (published on host port 3307)
 docker compose up -d
-```
 
-Without Docker, create the database and user manually:
-
-```sql
-CREATE DATABASE estacionamento CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-CREATE USER 'parking'@'localhost' IDENTIFIED BY 'parking123';
-GRANT ALL PRIVILEGES ON estacionamento.* TO 'parking'@'localhost';
-```
-
-The defaults match `backend/src/main/resources/application.yml`:
-
-| Variable | Default |
-|---|---|
-| `DB_URL` | `jdbc:mysql://127.0.0.1:3306/estacionamento` |
-| `DB_USER` | `parking` |
-| `DB_PASSWORD` | `parking123` |
-| `SERVER_PORT` | `8080` |
-| `DEMO_DATA` | `true` |
-| `CORS_ORIGINS` | `http://localhost:4200,http://127.0.0.1:4200` |
-| `JWT_SECRET` | local development secret (minimum 32 bytes) |
-| `JWT_EXPIRATION_HOURS` | `8` |
-| `ADMIN_NAME` | `Patio Admin` |
-| `ADMIN_EMAIL` | `admin@patio.local` |
-| `ADMIN_PASSWORD` | `Admin@123` |
-
-Flyway creates the schema and seeds 20 parking spots plus the initial pricing configuration on the first run. The backend creates the bootstrap administrator when the users table is empty. With `DEMO_DATA=true` it also creates the Manager and Attendant demo accounts and sample movements. Set `DEMO_DATA=false`, a strong `JWT_SECRET` and a custom `ADMIN_PASSWORD` for any non-demo environment.
-
-### 2. Run the API
-
-```bash
+# 2. API on http://localhost:8080
 cd backend
 mvn spring-boot:run
-```
 
-The API is available at `http://localhost:8080`.
-
-### 3. Run the web app
-
-```bash
+# 3. web app on http://localhost:4200 (proxies /api to :8080)
 cd frontend
 npm install
 npm start
 ```
 
-Open `http://localhost:4200`. The Angular development server proxies `/api` to `http://localhost:8080` through `proxy.conf.json`.
-
-## Accounts and roles
-
-Demo accounts (local only):
+Sign in with a demo account (created when `DEMO_DATA=true`, the default):
 
 | Role | Email | Password |
 |---|---|---|
@@ -123,114 +46,130 @@ Demo accounts (local only):
 | Manager | `manager@patio.local` | `Manager@123` |
 | Attendant | `attendant@patio.local` | `Attendant@123` |
 
-| Capability | Administrator | Manager | Attendant |
-|---|:---:|:---:|:---:|
-| Dashboard, yard, history, pricing view | Yes | Yes | Yes |
-| Check-in and check-out | Yes | Yes | Yes |
-| Add parking spots | Yes | Yes | No |
-| Change pricing | Yes | Yes | No |
-| Manage users and roles | Yes | No | No |
+Flyway creates the schema, 20 spots and the default pricing on first run. With demo data on, the API also seeds the three accounts and sample movements.
 
-The sidebar and actions follow the signed-in role. The API re-checks every request, so hiding a button is not the security boundary.
+<details>
+<summary>Using a local MySQL instead of Docker</summary>
 
-## Security notes
-
-- Passwords are hashed with BCrypt (cost 12) and never returned by the API.
-- Tokens are signed JWTs with an 8-hour expiry, issued only after a valid, active account signs in.
-- Five failed attempts block an email for fifteen minutes (in-memory).
-- Every authenticated request checks the account status and reloads its current role from MySQL.
-- Administrators cannot remove their own administrator access, and the system always keeps at least one active administrator.
-- The frontend stores the session in `sessionStorage` (tab-scoped) and sends it as a Bearer token.
-- CORS is restricted to the configured frontend origins; CSRF is disabled because the API is stateless and does not use cookies.
-- Sign-out is client-side; copied tokens remain valid until expiry. See `TODO.md` for production hardening items.
-
-## Testing and build
-
-```bash
-cd backend
-mvn test
-
-cd ../frontend
-npm run build
+```sql
+CREATE DATABASE estacionamento CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE USER 'parking'@'localhost' IDENTIFIED BY 'parking123';
+GRANT ALL PRIVILEGES ON estacionamento.* TO 'parking'@'localhost';
 ```
 
-The backend tests cover the pricing calculation, license plate validation and login throttling.
+Then start the API with `DB_URL=jdbc:mysql://127.0.0.1:3306/estacionamento`.
+</details>
+
+## Configuration
+
+Environment variables read by the API (defaults in `backend/src/main/resources/application.yml`):
+
+| Variable | Default |
+|---|---|
+| `DB_URL` | `jdbc:mysql://127.0.0.1:3307/estacionamento` |
+| `DB_USER` / `DB_PASSWORD` | `parking` / `parking123` |
+| `SERVER_PORT` | `8080` |
+| `CORS_ORIGINS` | `http://localhost:4200,http://127.0.0.1:4200` |
+| `JWT_SECRET` | local development secret (minimum 32 bytes) |
+| `JWT_EXPIRATION_HOURS` | `8` |
+| `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | `Patio Admin` / `admin@patio.local` / `Admin@123` |
+| `DEMO_DATA` | `true` |
+
+If `8080` or `4200` are taken, run the API with `SERVER_PORT=8081 CORS_ORIGINS=http://localhost:4201` and point `frontend/proxy.conf.json` at the new port, then start the web app with `npm start -- --port 4201`.
+
+### Production
+
+```bash
+SPRING_PROFILES_ACTIVE=prod \
+JWT_SECRET="<at least 32 random bytes>" \
+ADMIN_PASSWORD="<strong bootstrap password>" \
+DB_URL="jdbc:mysql://<host>:3306/estacionamento" \
+DB_USER="<user>" DB_PASSWORD="<password>" \
+CORS_ORIGINS="https://<frontend-host>" \
+java -jar parking-api.jar
+```
+
+The `prod` profile disables demo data and refuses to start without `JWT_SECRET` and `ADMIN_PASSWORD`. Terminate TLS in a reverse proxy; forwarded headers are honored.
+
+## Roles
+
+| Capability | Administrator | Manager | Attendant |
+|---|:---:|:---:|:---:|
+| Dashboard, yard, history, view pricing | ✓ | ✓ | ✓ |
+| Check-in and check-out | ✓ | ✓ | ✓ |
+| Add spots, change pricing | ✓ | ✓ | |
+| Manage users and roles | ✓ | | |
+
+The UI follows the signed-in role, but the API re-checks every request; hiding a button is not the security boundary.
 
 ## API
 
-Except for `POST /api/auth/login`, every endpoint requires `Authorization: Bearer <token>`.
+Everything except `POST /api/auth/login` needs `Authorization: Bearer <token>`.
 
 | Method | Endpoint | Description | Roles |
 |---|---|---|---|
-| `POST` | `/api/auth/login` | Sign in and receive a JWT | Public |
+| `POST` | `/api/auth/login` | Sign in, receive a JWT | Public |
 | `GET` | `/api/auth/me` | Current account | All |
-| `GET` | `/api/users` | List accounts | Admin |
-| `POST` | `/api/users` | Create an account | Admin |
+| `POST` | `/api/auth/password` | Change own password | All |
+| `GET` `POST` | `/api/users` | List / create accounts | Admin |
 | `PUT` | `/api/users/{id}` | Update name, role, status or password | Admin |
-| `GET` | `/api/dashboard` | Operational indicators and recent movements | All |
-| `GET` | `/api/spots` | List spots with current vehicle | All |
-| `POST` | `/api/spots` | Create a parking spot | Admin, Manager |
-| `POST` | `/api/sessions/check-in` | Register a vehicle entry | All |
-| `GET` | `/api/sessions/open` | List vehicles currently parked | All |
+| `GET` | `/api/dashboard` | Indicators and recent movements | All |
+| `GET` | `/api/spots` | Spots with current vehicle | All |
+| `POST` | `/api/spots` | Create a spot | Admin, Manager |
+| `POST` | `/api/sessions/check-in` | Register an entry | All |
+| `GET` | `/api/sessions/open` | Vehicles currently parked | All |
 | `GET` | `/api/sessions/checkout-preview?licensePlate=` | Preview time and charge | All |
-| `POST` | `/api/sessions/check-out` | Confirm exit and release the spot | All |
-| `GET` | `/api/sessions/history?licensePlate=&from=&to=` | Closed movements with filters | All |
-| `GET` | `/api/pricing` | Read pricing configuration | All |
-| `PUT` | `/api/pricing` | Update pricing configuration | Admin, Manager |
+| `POST` | `/api/sessions/check-out` | Confirm exit, release the spot | All |
+| `GET` | `/api/sessions/history?licensePlate=&from=&to=` | Movements with filters | All |
+| `GET` `PUT` | `/api/pricing` | Read / update rates | All / Admin, Manager |
 
-### Check-in request
+Errors use `{ timestamp, status, error, message, fields }`. Business rule violations (invalid plate, duplicate open session, full lot) return `409`.
 
-```json
-{
-  "licensePlate": "BRA2E19",
-  "model": "Honda Civic",
-  "color": "Black",
-  "spotId": null
-}
-```
-
-When `spotId` is omitted, the first available spot is assigned inside a database transaction. The API rejects invalid plates, duplicate open sessions and full lots with a `409 Conflict` and an explanatory message.
-
-### Check-out request
-
-```json
-{
-  "licensePlate": "BRA2E19"
-}
-```
-
-The amount is always calculated on the server from the stored entry time, the current server time and the pricing configuration. The frontend never sends a value.
+Check-in body: `{ "licensePlate": "BRA2E19", "model": "Honda Civic", "color": "Black", "spotId": null }`. Without `spotId`, the first free spot is assigned inside a transaction. Check-out takes only `{ "licensePlate": "BRA2E19" }`; the amount is never sent by the client.
 
 ## Pricing rules
 
-- Sessions up to the configured grace period are free.
-- Parking time is rounded up to the configured block (default 60 minutes).
-- The first hour uses the first-hour rate.
-- Each additional started hour uses the additional-hour rate.
-- Every 24-hour block is capped at the daily rate.
-- The daily rate also caps the final partial day.
+- Stays up to the grace period are free.
+- Time is rounded up to the configured block, then billed: first hour at the first-hour rate, each additional started hour at the additional rate.
+- Each full 24 hours is charged the daily rate, and the final partial day never exceeds it.
 
-Default configuration: first hour R$ 12.00, additional hour R$ 6.00, daily rate R$ 45.00, 10-minute grace period, 60-minute rounding.
+Defaults: first hour R$ 12.00, extra hour R$ 6.00, daily R$ 45.00, 10-minute grace, 60-minute rounding.
 
-## Business integrity
+## Security
 
-- One open session per vehicle, enforced in the service and by a unique generated column in MySQL.
-- One open session per parking spot, enforced in the service and by a unique generated column in MySQL.
-- Check-in and check-out run in database transactions and lock the spot/session rows.
-- Check-out is rejected when the vehicle is not parked.
-- Plate validation accepts both legacy (`ABC1234`) and Mercosul (`ABC1D23`) formats.
-- DTO validation protects every write endpoint.
+- BCrypt (cost 12) password hashes, never returned by the API; password policy of 8–72 characters with a letter and a number.
+- Signed JWTs (HS256, 8 h). Each request re-checks that the account is active and reloads its role from MySQL.
+- Five failed sign-ins block an email for fifteen minutes (in memory).
+- The last active administrator cannot be demoted or deactivated.
+- The session lives in `sessionStorage` and is sent as a Bearer token. CORS is limited to the configured origins; CSRF is off because the API is stateless and cookie-free.
+- Sign-out is client-side: a copied token stays valid until it expires. See [TODO.md](TODO.md) for the remaining hardening.
 
-## Demo flow
+## Project structure
 
-1. Sign in, then open the dashboard and review available spots.
-2. Go to **Check in**, enter a plate, model and color, and submit.
-3. The assigned spot appears occupied on the dashboard and in **Spots**.
-4. Open **Yard** to see all parked vehicles and their current estimates.
-5. Choose **Check out**, review the server-calculated charge, and confirm.
-6. The spot is released and the movement appears in **History**.
-7. The daily revenue on the dashboard updates immediately.
+```
+backend/src/main/java/br/com/patio/
+  auth/ config/ dashboard/ pricing/ security/ session/ shared/ spot/ user/ vehicle/
+backend/src/main/resources/db/migration/   Flyway schema and seeds
+frontend/src/app/
+  core/       API client, session, guards, formatting
+  features/   login, dashboard, check-in, yard, spots, history, pricing, users
+  layout/     shell and change-password dialog
+  shared/     modal, toasts, metric cards, empty state, plate and spot components
+```
 
-## Handoff
+## Tests and build
 
-Open `TODO.md` for the remaining production tasks, known limitations and demo credentials.
+```bash
+cd backend && mvn test        # pricing, plates, login throttling, MockMvc auth flow
+cd frontend && npm run build  # production bundle
+```
+
+The frontend has no automated tests yet.
+
+## Design
+
+The UI follows a shadcn/Vercel light style (Geist, neutral palette, black primary buttons, 1 px borders). The research behind it is in [UI-UX-REFERENCE.md](UI-UX-REFERENCE.md).
+
+## Scope
+
+Single parking lot. No OCR, barriers, payment gateway, mobile app or refresh tokens. Remaining work and known limitations are in [TODO.md](TODO.md).
