@@ -1,59 +1,29 @@
 import { Component, computed, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { ParkingSpot } from '../core/models';
-import { PlateComponent } from './plate';
 
+/** One parking bay. Status shown by dot AND text, never colour alone. */
 @Component({
   selector: 'app-spot-tile',
-  imports: [RouterLink, PlateComponent],
+  host: { class: 'block' },
   template: `
-    <a
-      [routerLink]="spot().status === 'AVAILABLE' ? ['/check-in'] : ['/yard']"
-      [queryParams]="spot().status === 'AVAILABLE' ? { spot: spot().id } : {}"
-      [attr.aria-label]="ariaLabel()"
-      [class]="
-        'group flex flex-col justify-between border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 ' +
-        (dense() ? 'min-h-[70px] p-2 ' : 'min-h-[116px] p-4 ') +
-        (spot().status === 'AVAILABLE'
-          ? 'border-line bg-surface hover:border-available/60 hover:bg-available-soft/40'
-          : 'border-asphalt bg-asphalt text-white hover:bg-asphalt-soft')
-      "
+    <div
+      class="flex h-full min-h-[72px] flex-col justify-between rounded-lg border px-3 py-2.5 transition-colors duration-150"
+      [class]="selected() ? 'border-foreground bg-background ring-[3px] ring-foreground/10' : occupied() ? 'border-border bg-subtle' : 'border-border bg-background hover:bg-accent/50'"
     >
-      <div class="flex items-start justify-between gap-2">
-        <span
-          class="font-mono font-semibold tabular-nums leading-none"
-          [class]="dense() ? 'text-sm' : 'text-xl'"
-        >
-          {{ spot().number }}
-        </span>
-        <span
-          class="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full"
-          [class]="spot().status === 'AVAILABLE' ? 'bg-available' : 'bg-signal'"
-        ></span>
-      </div>
-
-      <div class="mt-2">
-        @if (spot().status === 'AVAILABLE') {
-          <span class="text-[11px] font-medium text-available">Free</span>
-        } @else if (dense()) {
-          <span class="block truncate font-mono text-[9px] font-semibold tracking-[0.04em] text-signal">
-            {{ spot().licensePlate }}
-          </span>
+      <span class="data text-sm font-medium">{{ spot().number }}</span>
+      <span class="flex items-center gap-1.5 text-xs" [class]="occupied() ? 'text-foreground' : 'text-muted'">
+        <span class="dot" [class]="occupied() ? 'bg-danger' : 'bg-success'" aria-hidden="true"></span>
+        @if (occupied()) {
+          <span class="data truncate">{{ spot().licensePlate ?? 'Occupied' }}</span>
         } @else {
-          <app-plate [value]="spot().licensePlate ?? 'OCCUPIED'" size="md" />
+          Free
         }
-      </div>
-    </a>
+      </span>
+    </div>
   `
 })
-export class SpotTileComponent {
+export class SpotTile {
   readonly spot = input.required<ParkingSpot>();
-  readonly dense = input(false);
-
-  readonly ariaLabel = computed(() => {
-    const current = this.spot();
-    return current.status === 'AVAILABLE'
-      ? `Check in to spot ${current.number}`
-      : `Spot ${current.number} occupied by ${current.licensePlate}. Open the yard.`;
-  });
+  readonly selected = input(false);
+  protected readonly occupied = computed(() => this.spot().status === 'OCCUPIED');
 }

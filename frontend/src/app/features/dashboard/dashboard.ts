@@ -1,86 +1,83 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideArrowRight,
-  lucideCarFront,
-  lucideCircleAlert,
-  lucideLayoutDashboard,
-  lucideLogIn,
-  lucideLogOut,
-  lucideRefreshCw
-} from '@ng-icons/lucide';
 import { forkJoin } from 'rxjs';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideArrowRight, lucideRefreshCw } from '@ng-icons/lucide';
 import { ApiService } from '../../core/api.service';
+import { Dashboard, ParkingSpot } from '../../core/models';
 import { errorMessage } from '../../core/error';
-import {
-  formatCurrency,
-  formatPercent,
-  formatShortDateTime
-} from '../../core/format';
-import { Dashboard, ParkingSpot, PricingConfig } from '../../core/models';
-import { SessionService } from '../../core/session.service';
-import { PlateComponent } from '../../shared/plate';
-import { SpotTileComponent } from '../../shared/spot-tile';
+import { formatCurrency, formatDuration, formatPercent, formatShortDateTime, formatTime } from '../../core/format';
+import { MetricStrip, Metric } from '../../shared/metric-strip';
+import { PageHeader } from '../../shared/page-header';
+import { Plate } from '../../shared/plate';
+import { SpotTile } from '../../shared/spot-tile';
+import { EmptyState } from '../../shared/empty-state';
+
+const REFRESH_MS = 30_000;
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, NgIcon, PlateComponent, SpotTileComponent],
-  viewProviders: [
-    provideIcons({
-      lucideArrowRight,
-      lucideCarFront,
-      lucideCircleAlert,
-      lucideLayoutDashboard,
-      lucideLogIn,
-      lucideLogOut,
-      lucideRefreshCw
-    })
-  ],
+  imports: [RouterLink, NgIcon, MetricStrip, PageHeader, Plate, SpotTile, EmptyState],
+  providers: [provideIcons({ lucideArrowRight, lucideRefreshCw })],
   templateUrl: './dashboard.html'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardPage implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly session = inject(SessionService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  readonly canManagePricing = computed(() => this.session.hasAnyRole('ADMIN', 'MANAGER'));
-  readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
-  readonly dashboard = signal<Dashboard | null>(null);
-  readonly spots = signal<ParkingSpot[]>([]);
-  readonly pricing = signal<PricingConfig | null>(null);
-  readonly recentCheckOuts = computed(() =>
-    (this.dashboard()?.recentMovements ?? [])
-      .filter(movement => movement.status === 'CLOSED')
-      .slice(0, 3)
-  );
+  protected readonly data = signal<Dashboard | null>(null);
+  protected readonly spots = signal<ParkingSpot[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly updatedAt = signal<Date | null>(null);
 
-  readonly formatCurrency = formatCurrency;
-  readonly formatPercent = formatPercent;
-  readonly formatShortDateTime = formatShortDateTime;
+  protected readonly fmt = { formatCurrency, formatDuration, formatShortDateTime, formatTime };
+
+  protected readonly metrics = computed<Metric[]>(() => {
+    const d = this.data();
+    return [
+      {
+        label: 'Occupancy',
+        value: d ? formatPercent(d.occupancyRate) : '—',
+        hint: d ? `${d.occupiedSpots} of ${d.totalSpots} spots` : undefined,
+        tone: 'neutral'
+      },
+      { label: 'Available spots', value: d ? String(d.availableSpots) : '—', tone: 'free' },
+      { label: 'Parked vehicles', value: d ? String(d.parkedVehicles) : '—', tone: 'occupied' },
+      {
+        label: 'Revenue today',
+        value: d ? formatCurrency(d.revenueToday) : '—',
+        hint: d ? `${d.checkOutsToday} check-out${d.checkOutsToday === 1 ? '' : 's'}` : undefined
+      }
+    ];
+  });
+
+  protected readonly occupancyWidth = computed(() => `${Math.min(100, this.data()?.occupancyRate ?? 0)}%`);
 
   ngOnInit(): void {
     this.load();
+    const timer = setInterval(() => this.load(true), REFRESH_MS);
+    this.destroyRef.onDestroy(() => clearInterval(timer));
   }
 
-  load(): void {
-    this.loading.set(true);
-    this.error.set(null);
-
-    forkJoin({
-      dashboard: this.api.getDashboard(),
-      spots: this.api.getSpots(),
-      pricing: this.api.getPricing()
-    }).subscribe({
-      next: result => {
-        this.dashboard.set(result.dashboard);
-        this.spots.set(result.spots);
-        this.pricing.set(result.pricing);
+  protected load(silent = false): void {
+    if (!silent) {
+      this.loading.set(true);
+    }
+    forkJoin({ dashboard: this.api.getDashboard(), spots: this.api.getSpots() }).subscribe({
+      next: ({ dashboard, spots }) => {
+        this.data.set(dashboard);
+        this.spots.set(spots);
+        this.error.set(null);
         this.loading.set(false);
+        this.updatedAt.set(new Date());
       },
       error: error => {
-        this.error.set(errorMessage(error));
         this.loading.set(false);
+        // Keep the last good snapshot on a failed background refresh.
+        if (!silent || !this.data()) {
+          this.error.set(errorMessage(error));
+        }
       }
     });
   }

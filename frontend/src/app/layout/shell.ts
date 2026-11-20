@@ -1,114 +1,129 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-  lucideCarFront,
+  lucideCar,
   lucideHistory,
+  lucideKeyRound,
   lucideLayoutDashboard,
   lucideLogIn,
   lucideLogOut,
   lucideMenu,
   lucidePlus,
-  lucideSlidersHorizontal,
   lucideSquareParking,
+  lucideTag,
   lucideUsers,
   lucideX
 } from '@ng-icons/lucide';
-import { filter } from 'rxjs';
 import { AuthService } from '../core/auth.service';
-import { formatLongDate } from '../core/format';
+import { SessionService } from '../core/session.service';
 import { UserRole } from '../core/models';
 import { roleLabel } from '../core/roles';
-import { SessionService } from '../core/session.service';
-import { ToastService } from '../core/toast.service';
-import { ToastContainerComponent } from '../shared/toast-container';
+import { ChangePasswordDialog } from './change-password-dialog';
 
 interface NavItem {
-  label: string;
   path: string;
+  label: string;
   icon: string;
   roles?: UserRole[];
 }
 
+const NAV: { section: string; items: NavItem[] }[] = [
+  {
+    section: 'Operation',
+    items: [
+      { path: '/dashboard', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
+      { path: '/check-in', label: 'Check-in', icon: 'lucideLogIn' },
+      { path: '/yard', label: 'Yard', icon: 'lucideCar' },
+      { path: '/spots', label: 'Spots', icon: 'lucideSquareParking' }
+    ]
+  },
+  {
+    section: 'Records',
+    items: [
+      { path: '/history', label: 'History', icon: 'lucideHistory' },
+      { path: '/pricing', label: 'Pricing', icon: 'lucideTag' },
+      { path: '/users', label: 'Users', icon: 'lucideUsers', roles: ['ADMIN'] }
+    ]
+  }
+];
+
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, ToastContainerComponent],
-  viewProviders: [
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, ChangePasswordDialog],
+  providers: [
     provideIcons({
-      lucideCarFront,
+      lucideCar,
       lucideHistory,
+      lucideKeyRound,
       lucideLayoutDashboard,
       lucideLogIn,
       lucideLogOut,
       lucideMenu,
       lucidePlus,
-      lucideSlidersHorizontal,
       lucideSquareParking,
+      lucideTag,
       lucideUsers,
       lucideX
     })
   ],
+  host: { '(document:keydown.escape)': 'menuOpen.set(false)' },
   templateUrl: './shell.html'
 })
-export class ShellComponent {
-  private readonly router = inject(Router);
+export class Shell implements OnInit {
   private readonly session = inject(SessionService);
   private readonly auth = inject(AuthService);
-  private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
-  readonly navItems: NavItem[] = [
-    { label: 'Dashboard', path: '/dashboard', icon: 'lucideLayoutDashboard' },
-    { label: 'Check in', path: '/check-in', icon: 'lucideLogIn' },
-    { label: 'Yard', path: '/yard', icon: 'lucideCarFront' },
-    { label: 'Spots', path: '/spots', icon: 'lucideSquareParking' },
-    { label: 'History', path: '/history', icon: 'lucideHistory' },
-    { label: 'Pricing', path: '/pricing', icon: 'lucideSlidersHorizontal' },
-    { label: 'Users', path: '/users', icon: 'lucideUsers', roles: ['ADMIN'] }
-  ];
-
-  readonly today = formatLongDate(new Date());
-  readonly mobileOpen = signal(false);
-  readonly pageTitle = signal('Dashboard');
-  readonly user = this.session.user;
-  readonly roleLabel = roleLabel;
-  readonly visibleNav = computed(() =>
-    this.navItems.filter(item => !item.roles || this.session.hasAnyRole(...item.roles))
+  protected readonly user = this.session.user;
+  protected readonly roleLabel = computed(() => roleLabel(this.session.role()));
+  protected readonly initials = computed(() =>
+    (this.user()?.name ?? '?')
+      .split(/\s+/)
+      .slice(0, 2)
+      .map(part => part[0]?.toUpperCase() ?? '')
+      .join('')
   );
-  readonly initials = computed(() => {
-    const name = this.session.user()?.name?.trim();
-    if (!name) {
-      return '?';
-    }
-    const parts = name.split(/\s+/);
-    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
-  });
+  protected readonly nav = computed(() =>
+    NAV.map(group => ({
+      ...group,
+      items: group.items.filter(item => !item.roles || this.session.hasAnyRole(...item.roles))
+    }))
+  );
+  private readonly url = signal(this.router.url);
+  protected readonly pageTitle = computed(
+    () => NAV.flatMap(group => group.items).find(item => this.url().startsWith(item.path))?.label ?? 'Patio'
+  );
+  protected readonly menuOpen = signal(false);
+  protected readonly passwordOpen = signal(false);
+  protected readonly now = signal(new Date());
+  protected readonly clock = computed(() =>
+    this.now().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  );
+  protected readonly today = computed(() =>
+    this.now().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit' })
+  );
 
-  constructor() {
-    this.setPageTitle(this.router.url);
-    if (this.session.isAuthenticated()) {
-      this.auth.refreshSession().subscribe({ error: () => undefined });
-    }
+  ngOnInit(): void {
+    const timer = setInterval(() => this.now.set(new Date()), 15_000);
+    this.destroyRef.onDestroy(() => clearInterval(timer));
+
     this.router.events
-      .pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-        takeUntilDestroyed()
-      )
-      .subscribe(event => {
-        this.setPageTitle(event.urlAfterRedirects);
-        this.mobileOpen.set(false);
+      .pipe(filter(event => event instanceof NavigationEnd), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.menuOpen.set(false);
+        this.url.set(this.router.url);
       });
+
+    // Keep role/active flag in sync with the server; a 401 is handled by the interceptor.
+    this.auth.refreshSession().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ error: () => undefined });
   }
 
-  logout(): void {
+  protected logout(): void {
     this.auth.logout();
-    this.toast.show('Signed out.', 'info');
     void this.router.navigate(['/login']);
-  }
-
-  private setPageTitle(url: string): void {
-    const path = url.split('?')[0];
-    const item = this.navItems.find(navItem => path.startsWith(navItem.path));
-    this.pageTitle.set(item?.label ?? 'Dashboard');
   }
 }

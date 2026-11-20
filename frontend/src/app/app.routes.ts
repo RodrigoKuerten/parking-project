@@ -1,49 +1,56 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard, roleGuard } from './core/guards';
-import { ShellComponent } from './layout/shell';
 
 export const routes: Routes = [
   {
     path: 'login',
     canActivate: [guestGuard],
-    loadComponent: () => import('./features/login/login').then(module => module.LoginComponent)
+    title: 'Sign in · Patio',
+    loadComponent: () => import('./features/login/login').then(m => m.LoginPage)
   },
   {
     path: '',
-    component: ShellComponent,
     canActivate: [authGuard],
+    loadComponent: () => import('./layout/shell').then(m => m.Shell),
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
         path: 'dashboard',
-        loadComponent: () => import('./features/dashboard/dashboard').then(module => module.DashboardComponent)
+        title: 'Dashboard · Patio',
+        loadComponent: () => import('./features/dashboard/dashboard').then(m => m.DashboardPage)
       },
       {
         path: 'check-in',
-        loadComponent: () => import('./features/check-in/check-in').then(module => module.CheckInComponent)
+        title: 'Check-in · Patio',
+        loadComponent: () => import('./features/check-in/check-in').then(m => m.CheckInPage)
       },
       {
         path: 'yard',
-        loadComponent: () => import('./features/yard/yard').then(module => module.YardComponent)
+        title: 'Yard · Patio',
+        loadComponent: () => import('./features/yard/yard').then(m => m.YardPage)
       },
       {
         path: 'spots',
-        loadComponent: () => import('./features/spots/spots').then(module => module.SpotsComponent)
+        title: 'Spots · Patio',
+        loadComponent: () => import('./features/spots/spots').then(m => m.SpotsPage)
       },
       {
         path: 'history',
-        loadComponent: () => import('./features/history/history').then(module => module.HistoryComponent)
+        title: 'History · Patio',
+        loadComponent: () => import('./features/history/history').then(m => m.HistoryPage)
       },
       {
         path: 'pricing',
-        loadComponent: () => import('./features/pricing/pricing').then(module => module.PricingComponent)
+        title: 'Pricing · Patio',
+        loadComponent: () => import('./features/pricing/pricing').then(m => m.PricingPage)
       },
       {
         path: 'users',
+        title: 'Users · Patio',
         canActivate: [roleGuard('ADMIN')],
-        loadComponent: () => import('./features/users/users').then(module => module.UsersComponent)
+        loadComponent: () => import('./features/users/users').then(m => m.UsersPage)
       }
     ]
   },
-  { path: '**', redirectTo: 'dashboard' }
+  { path: '**', redirectTo: '' }
 ];

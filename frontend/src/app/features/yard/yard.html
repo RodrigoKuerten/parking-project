@@ -1,246 +1,136 @@
-@if (loading()) {
-  <div class="page" role="status" aria-label="Loading yard">
-    <div class="h-10 w-80 animate-pulse rounded bg-line/70"></div>
-    <div class="h-96 animate-pulse rounded-card border border-line bg-surface"></div>
-  </div>
-} @else if (error()) {
-  <div class="page">
-    <div class="panel flex flex-col items-center justify-center px-6 py-16 text-center">
-      <span class="grid h-11 w-11 place-items-center rounded-full bg-occupied-soft text-occupied">
-        <ng-icon name="lucideCircleAlert" size="22" />
-      </span>
-      <h2 class="mt-4 text-lg font-semibold">Could not load the yard</h2>
-      <p class="mt-1 max-w-sm text-sm text-muted">{{ error() }}</p>
-      <button type="button" class="btn btn-secondary mt-5" (click)="load()">
-        <ng-icon name="lucideRefreshCw" size="16" />
-        Try again
-      </button>
-    </div>
-  </div>
-} @else {
-  <div class="page">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h2 class="text-xl font-semibold tracking-tight">Yard operations</h2>
-        <p class="mt-1 text-sm text-muted">Open sessions, live parking time, and server-side estimates.</p>
+<div class="page-enter">
+  <app-page-header title="Yard" description="Vehicles currently parked. Amounts are estimates until check-out.">
+    <button type="button" class="btn btn-secondary" (click)="load()" [disabled]="loading()">
+      <ng-icon name="lucideRefreshCw" size="16" aria-hidden="true" [class.animate-spin]="loading()" /> Refresh
+    </button>
+  </app-page-header>
+
+  <!-- shadcn Data Table: toolbar + bordered table + footer -->
+  <section aria-labelledby="yard-title">
+    <h2 id="yard-title" class="sr-only">Parked vehicles</h2>
+    <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="relative w-full sm:max-w-sm">
+        <label for="yard-search" class="sr-only">Search by plate, spot or model</label>
+        <ng-icon name="lucideSearch" size="16" class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" aria-hidden="true" />
+        <input id="yard-search" type="search" class="field pl-9" placeholder="Filter plate, spot or model…" autocomplete="off"
+          [value]="query()" (input)="onSearch($event)" (keydown.enter)="onSearchEnter()" />
       </div>
-      <a routerLink="/check-in" class="btn btn-primary">
-        <ng-icon name="lucideCarFront" size="16" />
-        Check in vehicle
-      </a>
+      <p class="text-sm text-muted">
+        Estimated total <span class="data font-medium text-foreground">{{ fmt.formatCurrency(estimatedTotal()) }}</span>
+      </p>
     </div>
 
-    <section class="panel overflow-hidden">
-      <div class="panel-header">
-        <div>
-          <h2 class="section-title">Open sessions</h2>
-          <p class="section-caption">{{ sessions().length }} vehicles currently parked</p>
-        </div>
-        <div class="relative w-full sm:w-72">
-          <ng-icon
-            name="lucideSearch"
-            size="16"
-            class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-          />
-          <input
-            type="search"
-            class="input pl-9"
-            placeholder="Search plate, model, or color"
-            aria-label="Search vehicles in the yard"
-            [value]="search()"
-            (input)="setSearch($event)"
-          />
-        </div>
+    @if (loading() && sessions().length === 0) {
+      <div class="space-y-2">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="skeleton h-12"></div>
+        }
       </div>
-
-      @if (sessions().length === 0) {
-        <div class="px-6 py-16 text-center">
-          <span class="mx-auto grid h-11 w-11 place-items-center rounded-full bg-paper text-muted">
-            <ng-icon name="lucideCarFront" size="22" />
-          </span>
-          <p class="mt-4 text-sm font-medium">The yard is empty</p>
-          <p class="mt-1 text-xs text-muted">Register a check-in to see the vehicle here.</p>
-          <a routerLink="/check-in" class="btn btn-primary btn-sm mt-4">Check in vehicle</a>
-        </div>
-      } @else if (filteredSessions().length === 0) {
-        <div class="px-6 py-16 text-center">
-          <p class="text-sm font-medium">No vehicles match “{{ search() }}”</p>
-          <p class="mt-1 text-xs text-muted">Try a plate, model, or color.</p>
-          <button type="button" class="btn btn-secondary btn-sm mt-4" (click)="clearSearch()">Clear search</button>
-        </div>
-      } @else {
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[760px] border-collapse">
-            <thead>
-              <tr class="bg-paper/60">
-                <th scope="col" class="table-head">Spot</th>
-                <th scope="col" class="table-head">Vehicle</th>
-                <th scope="col" class="table-head">Entry</th>
-                <th scope="col" class="table-head">Parked for</th>
-                <th scope="col" class="table-head text-right">Estimate</th>
-                <th scope="col" class="table-head text-right"><span class="sr-only">Actions</span></th>
+    } @else if (error()) {
+      <div class="rounded-lg border border-border">
+        <app-empty-state icon="lucideCircleAlert" tone="error" title="Couldn't load the yard" [description]="error()!">
+          <button type="button" class="btn btn-secondary btn-sm" (click)="load()">Try again</button>
+        </app-empty-state>
+      </div>
+    } @else if (sessions().length === 0) {
+      <div class="rounded-lg border border-dashed border-border">
+        <app-empty-state title="The yard is empty" description="No vehicles are parked right now.">
+          <a routerLink="/check-in" class="btn btn-primary btn-sm">New check-in</a>
+        </app-empty-state>
+      </div>
+    } @else if (filtered().length === 0) {
+      <div class="rounded-lg border border-border">
+        <app-empty-state icon="lucideSearch" title="No results" [description]="'Nothing parked matches “' + query() + '”.'">
+          <button type="button" class="btn btn-secondary btn-sm" (click)="query.set('')">Clear filter</button>
+        </app-empty-state>
+      </div>
+    } @else {
+      <div class="table-frame">
+        <table class="table">
+          <caption class="sr-only">Parked vehicles, longest stay first</caption>
+          <thead>
+            <tr>
+              <th scope="col">Plate</th>
+              <th scope="col">Spot</th>
+              <th scope="col" class="hidden xl:table-cell">Vehicle</th>
+              <th scope="col" class="hidden sm:table-cell">Entry</th>
+              <th scope="col" class="hidden sm:table-cell">Time parked</th>
+              <th scope="col" class="text-right!">Estimate</th>
+              <th scope="col" class="w-px"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of filtered(); track s.id) {
+              <tr>
+                <td><app-plate [value]="s.licensePlate" /></td>
+                <td class="data">{{ s.spotNumber }}</td>
+                <td class="hidden text-muted xl:table-cell">{{ s.model }} · {{ s.color }}</td>
+                <td class="data hidden text-muted sm:table-cell">{{ fmt.formatShortDateTime(s.entryAt) }}</td>
+                <td class="data hidden sm:table-cell">{{ fmt.formatDuration(s.parkingMinutes) }}</td>
+                <td class="data text-right font-medium">{{ fmt.formatCurrency(s.estimatedAmount) }}</td>
+                <td class="text-right">
+                  <button type="button" class="btn btn-secondary btn-sm" [attr.aria-label]="'Check out ' + s.licensePlate"
+                    (click)="openCheckout(s.licensePlate)">Check out</button>
+                </td>
               </tr>
-            </thead>
-            <tbody class="divide-y divide-line">
-              @for (session of filteredSessions(); track session.id) {
-                <tr class="transition-colors hover:bg-paper/60">
-                  <td class="cell">
-                    <span class="inline-grid h-9 min-w-9 place-items-center bg-asphalt px-2 font-mono text-sm font-semibold text-white">
-                      {{ session.spotNumber }}
-                    </span>
-                  </td>
-                  <td class="cell">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <app-plate [value]="session.licensePlate" />
-                      <span class="text-xs text-muted">{{ session.model }} · {{ session.color }}</span>
-                    </div>
-                  </td>
-                  <td class="cell whitespace-nowrap text-xs text-muted">
-                    {{ formatShortDateTime(session.entryAt) }}
-                  </td>
-                  <td class="cell whitespace-nowrap">
-                    <span class="font-mono text-xs font-semibold">{{ formatDuration(elapsedMinutes(session)) }}</span>
-                  </td>
-                  <td class="cell whitespace-nowrap text-right font-mono text-xs font-semibold">
-                    {{ formatCurrency(session.estimatedAmount) }}
-                  </td>
-                  <td class="cell text-right">
-                    <button type="button" class="btn btn-secondary btn-sm" (click)="openCheckout(session)">
-                      Check out
-                      <ng-icon name="lucideArrowRight" size="14" />
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-3 text-sm text-muted" aria-live="polite">
+        {{ filtered().length }} of {{ sessions().length }} vehicle(s) parked.
+        <span class="hidden sm:inline">Press <span class="kbd">Enter</span> on a single match to check it out.</span>
+      </p>
+    }
+  </section>
+</div>
+
+@if (checkoutPlate(); as plate) {
+  <app-modal [heading]="step() === 'done' ? 'Check-out complete' : 'Check out ' + plate" size="sm" (closed)="closeCheckout()">
+    @switch (step()) {
+      @case ('loading') {
+        <div class="space-y-3" role="status" aria-label="Calculating amount">
+          <div class="skeleton h-16"></div>
+          <div class="skeleton h-28"></div>
         </div>
       }
-    </section>
-  </div>
-}
-
-@if (selected(); as session) {
-  <app-modal
-    title="Register check-out"
-    [subtitle]="'Spot ' + session.spotNumber + ' · ' + session.model"
-    (closed)="closeCheckout()"
-  >
-    @if (completed(); as receipt) {
-      <div class="text-center">
-        <span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-available text-white">
-          <ng-icon name="lucideCircleCheck" size="24" />
-        </span>
-        <h3 class="mt-3 text-lg font-semibold">Check-out complete</h3>
-        <p class="mt-1 text-sm text-muted">Spot {{ receipt.spotNumber }} is available for the next vehicle.</p>
-
-        <div class="mt-5 border border-line bg-paper p-4 text-left">
-          <div class="flex items-end justify-between gap-3">
-            <app-plate [value]="receipt.licensePlate" size="md" />
-            <div class="text-right">
-              <p class="text-[10px] font-medium text-muted">Total charged</p>
-              <span class="font-mono text-2xl font-semibold">{{ formatCurrency(receipt.amount) }}</span>
+      @case ('error') {
+        <p class="alert-error" role="alert">{{ checkoutError() }}</p>
+      }
+      @default {
+        @if (preview(); as p) {
+          <div class="rounded-lg bg-subtle px-4 py-5 text-center">
+            <p class="text-[13px] text-muted">{{ step() === 'done' ? 'Amount charged' : 'Amount due' }}</p>
+            <p class="mt-1 text-[40px] tabular-nums leading-none font-semibold tracking-[-0.04em]">{{ fmt.formatCurrency(p.amount) }}</p>
+            <div class="mt-3 flex items-center justify-center gap-2">
+              <app-plate [value]="p.licensePlate" />
+              <span class="text-sm text-muted">{{ p.model }} · {{ p.color }}</span>
             </div>
           </div>
-          <dl class="mt-4 grid grid-cols-2 gap-3 text-xs">
-            <div>
-              <dt class="text-muted">Entry</dt>
-              <dd class="mt-0.5 font-mono font-medium">{{ formatShortDateTime(receipt.entryAt) }}</dd>
-            </div>
-            <div>
-              <dt class="text-muted">Exit</dt>
-              <dd class="mt-0.5 font-mono font-medium">{{ formatShortDateTime(receipt.exitAt) }}</dd>
-            </div>
-            <div>
-              <dt class="text-muted">Parking time</dt>
-              <dd class="mt-0.5 font-medium">{{ formatDuration(receipt.parkingMinutes) }}</dd>
-            </div>
-            <div>
-              <dt class="text-muted">Billed time</dt>
-              <dd class="mt-0.5 font-medium">{{ formatDuration(receipt.billedMinutes) }}</dd>
-            </div>
+          <dl class="mt-4 space-y-2.5 text-sm">
+            <div class="flex justify-between"><dt class="text-muted">Spot</dt><dd class="data">{{ p.spotNumber }}</dd></div>
+            <div class="flex justify-between"><dt class="text-muted">Entry</dt><dd class="data">{{ fmt.formatShortDateTime(p.entryAt) }}</dd></div>
+            <div class="flex justify-between"><dt class="text-muted">Exit</dt><dd class="data">{{ fmt.formatShortDateTime(p.exitAt) }}</dd></div>
+            <div class="flex justify-between"><dt class="text-muted">Time parked</dt><dd class="data">{{ fmt.formatDuration(p.parkingMinutes) }}</dd></div>
+            <div class="flex justify-between"><dt class="text-muted">Billed time</dt><dd class="data">{{ fmt.formatDuration(p.billedMinutes) }}</dd></div>
           </dl>
-        </div>
-
-        <div class="mt-5 flex justify-center gap-2">
-          <button type="button" class="btn btn-secondary" (click)="closeCheckout()">Done</button>
-          <a routerLink="/history" class="btn btn-dark" (click)="closeCheckout()">View history</a>
-        </div>
-      </div>
-    } @else if (previewLoading()) {
-      <div class="space-y-4" role="status" aria-label="Calculating check-out">
-        <div class="h-14 animate-pulse rounded bg-paper"></div>
-        <div class="h-28 animate-pulse rounded bg-paper"></div>
-        <div class="h-10 animate-pulse rounded bg-paper"></div>
-      </div>
-    } @else if (previewError()) {
-      <div class="border border-occupied/30 bg-occupied-soft p-4 text-sm text-occupied" role="alert">
-        {{ previewError() }}
-      </div>
-      <div class="mt-5 flex justify-end gap-2">
-        <button type="button" class="btn btn-secondary" (click)="closeCheckout()">Close</button>
-        <button type="button" class="btn btn-primary" (click)="loadPreview(session)">Try again</button>
-      </div>
-    } @else if (preview(); as data) {
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
-        <div class="flex items-center gap-2">
-          <app-plate [value]="data.licensePlate" size="md" />
-          <span class="text-xs text-muted">{{ data.model }} · {{ data.color }}</span>
-        </div>
-        <span class="badge badge-neutral">
-          <ng-icon name="lucideClock" size="12" />
-          {{ formatDuration(elapsedMinutes(session)) }}
-        </span>
-      </div>
-
-      <dl class="mt-4 grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <dt class="text-xs text-muted">Spot</dt>
-          <dd class="mt-0.5 font-mono font-semibold">{{ data.spotNumber }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs text-muted">Entry</dt>
-          <dd class="mt-0.5 font-mono text-xs font-medium">{{ formatShortDateTime(data.entryAt) }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs text-muted">Exit</dt>
-          <dd class="mt-0.5 font-mono text-xs font-medium">{{ formatShortDateTime(data.exitAt) }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs text-muted">Billed time</dt>
-          <dd class="mt-0.5 font-medium">{{ formatDuration(data.billedMinutes) }}</dd>
-        </div>
-      </dl>
-
-      <div class="mt-5 flex items-end justify-between gap-3 border border-line bg-paper p-4">
-        <div>
-          <p class="text-xs font-medium text-muted">Amount due</p>
-          <p class="mt-1 text-[11px] text-muted">{{ formatDuration(data.parkingMinutes) }} parked · {{ formatDuration(data.billedMinutes) }} billed</p>
-        </div>
-        <p class="font-mono text-3xl font-semibold leading-none">{{ formatCurrency(data.amount) }}</p>
-      </div>
-
-      <p class="mt-3 text-[11px] leading-relaxed text-muted">
-        The amount is calculated by the API from the stored entry time, the current time, and the active pricing rules.
-      </p>
-
-      @if (actionError()) {
-        <div class="mt-3 border border-occupied/30 bg-occupied-soft p-3 text-sm text-occupied" role="alert">
-          {{ actionError() }}
-        </div>
-      }
-
-      <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <button type="button" class="btn btn-secondary" [disabled]="confirming()" (click)="closeCheckout()">Cancel</button>
-        <button type="button" class="btn btn-primary" [disabled]="confirming()" (click)="confirmCheckout()">
-          @if (confirming()) {
-            <ng-icon name="lucideLoaderCircle" size="16" class="animate-spin" />
-            Confirming…
-          } @else {
-            Confirm check-out
+          @if (step() !== 'done') {
+            <p class="mt-4 flex items-center gap-1.5 text-[13px] text-muted">
+              <ng-icon name="lucideClock" size="14" aria-hidden="true" /> The server recalculates the amount on confirmation.
+            </p>
           }
-        </button>
-      </div>
+        }
+      }
     }
+    <footer modal-footer class="flex flex-col-reverse gap-2 px-6 pt-2 pb-6 sm:flex-row sm:justify-end">
+      @if (step() === 'done' || step() === 'error') {
+        <button type="button" class="btn btn-primary" (click)="closeCheckout()">Done</button>
+      } @else {
+        <button type="button" class="btn btn-secondary" (click)="closeCheckout()" [disabled]="step() === 'saving'">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="confirmCheckout()" [disabled]="step() !== 'preview'">
+          {{ step() === 'saving' ? 'Confirming…' : 'Confirm check-out' }}
+        </button>
+      }
+    </footer>
   </app-modal>
 }

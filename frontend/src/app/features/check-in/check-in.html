@@ -1,232 +1,149 @@
-@if (loading()) {
-  <div class="page" role="status" aria-label="Loading check-in form">
-    <div class="h-10 w-80 animate-pulse rounded bg-line/70"></div>
-    <div class="grid gap-4 lg:grid-cols-12">
-      <div class="h-[430px] animate-pulse rounded-card border border-line bg-surface lg:col-span-8"></div>
-      <div class="h-[430px] animate-pulse rounded-card bg-asphalt/90 lg:col-span-4"></div>
-    </div>
-  </div>
-} @else if (loadError()) {
-  <div class="page">
-    <div class="panel flex flex-col items-center justify-center px-6 py-16 text-center">
-      <span class="grid h-11 w-11 place-items-center rounded-full bg-occupied-soft text-occupied">
-        <ng-icon name="lucideCircleAlert" size="22" />
-      </span>
-      <h2 class="mt-4 text-lg font-semibold">Could not prepare the check-in</h2>
-      <p class="mt-1 max-w-sm text-sm text-muted">{{ loadError() }}</p>
-      <button type="button" class="btn btn-secondary mt-5" (click)="load()">Try again</button>
-    </div>
-  </div>
-} @else {
-  <div class="page">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h2 class="text-xl font-semibold tracking-tight">Register an entry</h2>
-        <p class="mt-1 text-sm text-muted">The API validates the plate, checks availability, and assigns the bay.</p>
-      </div>
-      <a routerLink="/yard" class="link-quiet">View vehicles in the yard</a>
-    </div>
+<div class="page-enter">
+  <app-page-header title="Check-in" description="Register a vehicle entering the lot. Leave the spot on auto to take the first free one." />
 
-    @if (success(); as session) {
-      <div class="border border-available/35 bg-available-soft p-4 sm:p-5" role="status">
-        <div class="flex flex-wrap items-start gap-4">
-          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-available text-white">
-            <ng-icon name="lucideCircleCheck" size="19" />
-          </span>
-          <div class="min-w-0 flex-1">
-            <p class="font-semibold text-available">Vehicle checked in</p>
-            <p class="mt-1 text-sm text-ink">
-              Spot <span class="font-mono font-semibold">{{ session.spotNumber }}</span> is now occupied.
-            </p>
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-              <app-plate [value]="session.licensePlate" />
-              <span class="text-xs text-muted">{{ session.model }} · {{ session.color }}</span>
-            </div>
-            <p class="mt-1 text-xs text-muted">Entry recorded by the server at {{ formatTime(session.entryAt) }}.</p>
-          </div>
-          <div class="flex gap-2">
-            <button type="button" class="btn btn-secondary btn-sm" (click)="clearSuccess()">New check-in</button>
-            <a routerLink="/yard" class="btn btn-dark btn-sm">Open yard</a>
-          </div>
+  @if (receipt(); as r) {
+    <section class="panel mx-auto max-w-lg" aria-labelledby="receipt-title">
+      <div class="px-6 pt-8 pb-6 text-center sm:px-10">
+        <span class="mx-auto mb-4 grid size-10 place-items-center rounded-full bg-success/10 text-success">
+          <ng-icon name="lucideCircleCheck" size="20" aria-hidden="true" />
+        </span>
+        <h2 id="receipt-title" class="text-base font-medium">Check-in registered</h2>
+        <p class="mt-1 text-sm text-muted">Direct the vehicle to spot</p>
+        <p class="mt-3 text-[56px] tabular-nums leading-none font-semibold tracking-[-0.04em]">{{ r.spotNumber }}</p>
+        <div class="mt-5 flex justify-center"><app-plate [value]="r.licensePlate" size="lg" /></div>
+      </div>
+      <dl class="mx-6 grid grid-cols-2 border-t border-border py-4 text-sm sm:mx-10">
+        <div>
+          <dt class="text-muted">Vehicle</dt>
+          <dd class="mt-0.5 font-medium">{{ r.model }} · {{ r.color }}</dd>
         </div>
+        <div class="text-right">
+          <dt class="text-muted">Entry</dt>
+          <dd class="data mt-0.5 font-medium">{{ fmt.formatShortDateTime(r.entryAt) }}</dd>
+        </div>
+      </dl>
+      <div class="flex flex-col-reverse gap-2 border-t border-border px-6 py-4 sm:flex-row sm:justify-end">
+        <a routerLink="/yard" class="btn btn-secondary">Open yard</a>
+        <button type="button" class="btn btn-primary" (click)="reset()" autofocus>
+          <ng-icon name="lucidePlus" size="16" aria-hidden="true" /> Next vehicle
+        </button>
       </div>
-    }
-
-    <div class="grid gap-4 lg:grid-cols-12">
-      <section class="panel lg:col-span-8">
+    </section>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <section class="panel self-start" aria-labelledby="vehicle-title">
         <div class="panel-header">
           <div>
-            <h2 class="section-title">Vehicle and spot</h2>
-            <p class="section-caption">All fields are required. The entry time is generated by the server.</p>
+            <h2 id="vehicle-title" class="panel-title">Vehicle</h2>
+            <p class="panel-description">Plate, model and color.</p>
           </div>
-          <span class="badge badge-free">{{ availableCount() }} available</span>
         </div>
-
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5 p-5">
-          <div class="grid gap-5 sm:grid-cols-2">
-            <div class="sm:col-span-2">
-              <label class="label" for="license-plate">License plate</label>
-              <div class="flex flex-wrap items-center gap-3">
-                <input
-                  id="license-plate"
-                  type="text"
-                  formControlName="licensePlate"
-                  class="input max-w-[220px] font-mono text-base uppercase tracking-[0.14em]"
-                  placeholder="ABC1D23"
-                  maxlength="8"
-                  autocomplete="off"
-                  spellcheck="false"
-                  aria-describedby="license-plate-help"
-                  (input)="onPlateInput($event)"
-                />
-                <div class="flex items-center gap-2 text-xs text-muted">
-                  @if (platePreview()) {
-                    <span>Preview</span>
-                    <app-plate [value]="platePreview()" size="md" />
-                  } @else {
-                    <span>Example plate: ABC1D23</span>
-                  }
-                </div>
-              </div>
-              <p id="license-plate-help" class="mt-1.5 text-xs text-muted">Mercosul (ABC1D23) or legacy (ABC1234) format.</p>
-              @if (form.controls.licensePlate.touched && form.controls.licensePlate.errors?.['required']) {
-                <p class="field-error">Enter the license plate.</p>
-              }
-              @if (form.controls.licensePlate.touched && form.controls.licensePlate.errors?.['pattern']) {
-                <p class="field-error">Use a valid plate format, such as ABC1D23.</p>
-              }
-            </div>
-
-            <div>
-              <label class="label" for="model">Model</label>
-              <input
-                id="model"
-                type="text"
-                formControlName="model"
-                class="input"
-                placeholder="Honda Civic"
-                maxlength="80"
-                autocomplete="off"
-              />
-              @if (form.controls.model.touched && form.controls.model.errors?.['required']) {
-                <p class="field-error">Enter the vehicle model.</p>
-              }
-            </div>
-
-            <div>
-              <label class="label" for="color">Color</label>
-              <input
-                id="color"
-                type="text"
-                formControlName="color"
-                class="input"
-                placeholder="Black"
-                maxlength="30"
-                autocomplete="off"
-              />
-              @if (form.controls.color.touched && form.controls.color.errors?.['required']) {
-                <p class="field-error">Enter the vehicle color.</p>
-              }
-            </div>
-
-            <div class="sm:col-span-2">
-              <label class="label" for="spot">Parking spot</label>
-              <select id="spot" formControlName="spotId" class="select">
-                <option [ngValue]="0">Assign the first available spot</option>
-                @for (spot of availableSpots(); track spot.id) {
-                  <option [ngValue]="spot.id">Spot {{ spot.number }}</option>
-                }
-              </select>
-              <p class="mt-1.5 text-xs text-muted">
-                Automatic assignment locks the first free bay inside the database transaction.
-              </p>
-            </div>
-          </div>
-
-          @if (availableCount() === 0) {
-            <div class="flex items-start gap-2 border border-occupied/30 bg-occupied-soft p-3 text-sm text-occupied" role="alert">
-              <ng-icon name="lucideCircleAlert" size="17" class="mt-0.5 shrink-0" />
-              <span>The lot is full. Add a spot or complete a check-out before registering a new entry.</span>
-            </div>
+        <div class="space-y-5 px-6 pt-2 pb-6">
+          @if (error()) {
+            <p class="alert-error" role="alert">{{ error() }}</p>
           }
-
-          @if (formError()) {
-            <div class="border border-occupied/30 bg-occupied-soft p-3 text-sm text-occupied" role="alert">
-              {{ formError() }}
-            </div>
-          }
-
-          <div class="flex flex-wrap items-center gap-3 border-t border-line pt-5">
-            <button type="submit" class="btn btn-primary" [disabled]="submitting() || availableCount() === 0">
-              @if (submitting()) {
-                <ng-icon name="lucideLoaderCircle" size="16" class="animate-spin" />
-                Checking in…
-              } @else {
-                <ng-icon name="lucideLogIn" size="16" />
-                Confirm check-in
-              }
-            </button>
-            <a routerLink="/dashboard" class="btn btn-secondary">Cancel</a>
-            <p class="text-[11px] text-muted">The entry timestamp and spot status are written by the API.</p>
+          <div>
+            <label class="field-label" for="plate">License plate</label>
+            <input
+              id="plate"
+              class="field data h-11 text-lg font-medium tracking-[0.08em] uppercase"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              maxlength="8"
+              placeholder="ABC1D23"
+              formControlName="licensePlate"
+              (input)="onPlateInput($event)"
+              autofocus
+              aria-describedby="plate-hint"
+              [attr.aria-invalid]="invalid('licensePlate')"
+            />
+            @if (invalid('licensePlate')) {
+              <p class="field-error">{{ form.controls.licensePlate.hasError('required') ? 'Enter the license plate.' : 'Use the format ABC1234 or ABC1D23.' }}</p>
+            } @else {
+              <p id="plate-hint" class="field-hint">Mercosul (ABC1D23) or legacy (ABC1234).</p>
+            }
           </div>
-        </form>
+          <div>
+            <label class="field-label" for="model">Model</label>
+            <input id="model" class="field" autocomplete="off" placeholder="Honda Civic" formControlName="model" maxlength="80"
+              [attr.aria-invalid]="invalid('model')" />
+            @if (invalid('model')) {
+              <p class="field-error">Enter the vehicle model.</p>
+            }
+          </div>
+          <div>
+            <label class="field-label" for="color">Color</label>
+            <input id="color" class="field" autocomplete="off" placeholder="White" formControlName="color" maxlength="30"
+              [attr.aria-invalid]="invalid('color')" />
+            <div class="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Common colors">
+              @for (c of colors; track c) {
+                <button type="button" class="badge h-7 cursor-pointer px-2.5 transition-colors hover:bg-accent"
+                  [class.bg-primary]="form.controls.color.value === c" [class.text-white]="form.controls.color.value === c"
+                  [class.border-primary]="form.controls.color.value === c"
+                  [attr.aria-pressed]="form.controls.color.value === c" (click)="form.controls.color.setValue(c)">{{ c }}</button>
+              }
+            </div>
+            @if (invalid('color')) {
+              <p class="field-error">Enter the vehicle color.</p>
+            }
+          </div>
+        </div>
       </section>
 
-      <aside class="space-y-4 lg:col-span-4">
-        <section class="relative overflow-hidden rounded-card bg-asphalt p-5 text-white">
-          <div class="absolute inset-x-0 top-0 h-[3px] bg-signal"></div>
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-xs font-medium text-white/55">Available now</p>
-              <p class="mt-1 font-mono text-3xl font-semibold leading-none">{{ availableCount() }}</p>
-            </div>
-            <span class="grid h-9 w-9 place-items-center rounded-[3px] border border-white/15 text-signal">
-              <ng-icon name="lucideSquareParking" size="19" />
-            </span>
+      <section class="panel flex flex-col" aria-labelledby="spot-title">
+        <div class="panel-header">
+          <div>
+            <h2 id="spot-title" class="panel-title">Spot</h2>
+            <p class="panel-description"><span class="data text-foreground">{{ available().length }}</span> free right now</p>
           </div>
+        </div>
+        <div class="flex-1 px-6 pt-2 pb-6">
+          <button
+            type="button"
+            class="mb-5 flex w-full cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors duration-150"
+            [class]="selectedSpotId() === null ? 'border-foreground ring-[3px] ring-foreground/10' : 'border-border hover:bg-accent/50'"
+            [attr.aria-pressed]="selectedSpotId() === null"
+            (click)="selectedSpotId.set(null)"
+          >
+            <span class="grid size-4 place-items-center rounded-full border" [class]="selectedSpotId() === null ? 'border-primary' : 'border-input'" aria-hidden="true">
+              @if (selectedSpotId() === null) { <span class="size-2 rounded-full bg-primary"></span> }
+            </span>
+            <span>
+              <span class="block text-sm font-medium">Auto-assign</span>
+              <span class="block text-[13px] text-muted">The server picks the first free spot.</span>
+            </span>
+          </button>
 
-          @if (pricing(); as rates) {
-            <div class="mt-5 border-t border-white/10 pt-4">
-              <p class="text-[11px] font-medium text-white/45">Rates in effect</p>
-              <dl class="mt-3 space-y-2 text-sm">
-                <div class="flex items-center justify-between">
-                  <dt class="text-white/60">First hour</dt>
-                  <dd class="font-mono font-semibold">{{ formatCurrency(rates.firstHourRate) }}</dd>
-                </div>
-                <div class="flex items-center justify-between">
-                  <dt class="text-white/60">Additional hour</dt>
-                  <dd class="font-mono font-semibold">{{ formatCurrency(rates.additionalHourRate) }}</dd>
-                </div>
-                <div class="flex items-center justify-between">
-                  <dt class="text-white/60">Daily cap</dt>
-                  <dd class="font-mono font-semibold">{{ formatCurrency(rates.dailyRate) }}</dd>
-                </div>
-              </dl>
+          @if (spotsLoading()) {
+            <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              @for (i of [1, 2, 3, 4, 5]; track i) {
+                <div class="skeleton h-[72px]"></div>
+              }
             </div>
-            <p class="mt-4 text-[11px] leading-relaxed text-white/40">
-              The first {{ rates.graceMinutes }} minutes are free. Time is rounded up in {{ rates.roundingMinutes }}-minute blocks.
-            </p>
+          } @else if (available().length === 0) {
+            <p class="alert-error" role="status">The lot is full. No vehicle can be checked in until a spot is released.</p>
+          } @else {
+            <p class="mb-2 text-sm font-medium" id="spot-choice">Or choose a spot</p>
+            <ul class="grid grid-cols-3 gap-2 sm:grid-cols-5" aria-labelledby="spot-choice">
+              @for (spot of available(); track spot.id) {
+                <li>
+                  <button type="button" class="block w-full cursor-pointer rounded-lg text-left" [attr.aria-pressed]="selectedSpotId() === spot.id"
+                    [attr.aria-label]="'Spot ' + spot.number" (click)="toggleSpot(spot.id)">
+                    <app-spot-tile [spot]="spot" [selected]="selectedSpotId() === spot.id" />
+                  </button>
+                </li>
+              }
+            </ul>
           }
-        </section>
-
-        <section class="panel p-5">
-          <h2 class="section-title">What happens on confirm</h2>
-          <ul class="mt-4 space-y-3 text-sm">
-            <li class="flex items-start gap-2.5">
-              <ng-icon name="lucideClock" size="16" class="mt-0.5 shrink-0 text-muted" />
-              <span class="text-muted">The server records the entry time and opens the parking session.</span>
-            </li>
-            <li class="flex items-start gap-2.5">
-              <ng-icon name="lucideSquareParking" size="16" class="mt-0.5 shrink-0 text-muted" />
-              <span class="text-muted">The chosen bay becomes occupied and disappears from the free list.</span>
-            </li>
-            <li class="flex items-start gap-2.5">
-              <ng-icon name="lucideCircleCheck" size="16" class="mt-0.5 shrink-0 text-available" />
-              <span class="text-muted">The vehicle can be found in the yard until check-out.</span>
-            </li>
-          </ul>
-        </section>
-      </aside>
-    </div>
-  </div>
-}
+        </div>
+        <div class="flex flex-col gap-3 border-t border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-[13px] text-muted">Billing starts at the entry time recorded by the server.</p>
+          <button type="submit" class="btn btn-primary" [disabled]="saving() || (!spotsLoading() && available().length === 0)">
+            {{ saving() ? 'Registering…' : 'Register check-in' }}
+          </button>
+        </div>
+      </section>
+    </form>
+  }
+</div>
