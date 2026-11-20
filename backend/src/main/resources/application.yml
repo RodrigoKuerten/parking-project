@@ -2,7 +2,7 @@ spring:
   application:
     name: patio-api
   datasource:
-    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/estacionamento?useTimezone=true&serverTimezone=America/Sao_Paulo&characterEncoding=UTF-8}
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3307/estacionamento?useTimezone=true&serverTimezone=America/Sao_Paulo&characterEncoding=UTF-8}
     username: ${DB_USER:parking}
     password: ${DB_PASSWORD:parking123}
   jpa:
