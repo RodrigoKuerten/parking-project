@@ -9,6 +9,7 @@ import { errorMessage } from '../../core/error';
 import { formatCurrency, formatShortDateTime, isValidPlate, normalizePlate } from '../../core/format';
 import { ToastService } from '../../core/toast.service';
 import { t, TranslationKey } from '../../core/i18n';
+import { colorLabel } from '../../core/format';
 import { PageHeader } from '../../shared/page-header';
 import { Plate } from '../../shared/plate';
 import { SpotTile } from '../../shared/spot-tile';
@@ -24,7 +25,14 @@ const COLORS: { value: string; key: TranslationKey }[] = [
   { value: 'Silver', key: 'color.Silver' },
   { value: 'Gray', key: 'color.Gray' },
   { value: 'Red', key: 'color.Red' },
-  { value: 'Blue', key: 'color.Blue' }
+  { value: 'Blue', key: 'color.Blue' },
+  { value: 'Green', key: 'color.Green' },
+  { value: 'Yellow', key: 'color.Yellow' },
+  { value: 'Orange', key: 'color.Orange' },
+  { value: 'Brown', key: 'color.Brown' },
+  { value: 'Gold', key: 'color.Gold' },
+  { value: 'Beige', key: 'color.Beige' },
+  { value: 'Purple', key: 'color.Purple' }
 ];
 
 @Component({
@@ -38,6 +46,7 @@ export class CheckInPage implements OnInit {
   private readonly toast = inject(ToastService);
 
   protected readonly t = t;
+  protected readonly colorLabel = colorLabel;
   protected readonly colors = COLORS;
   protected readonly form = inject(FormBuilder).nonNullable.group({
     licensePlate: ['', [Validators.required, plateValidator]],

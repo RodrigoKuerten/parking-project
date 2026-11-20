@@ -7,6 +7,7 @@ import { Movement } from '../../core/models';
 import { errorMessage } from '../../core/error';
 import { formatCurrency, formatDuration, formatShortDateTime, normalizePlate } from '../../core/format';
 import { t } from '../../core/i18n';
+import { colorLabel } from '../../core/format';
 import { EmptyState } from '../../shared/empty-state';
 import { MetricStrip, Metric } from '../../shared/metric-strip';
 import { PageHeader } from '../../shared/page-header';
@@ -34,6 +35,7 @@ export class HistoryPage implements OnInit {
 
   protected readonly fmt = { formatCurrency, formatDuration, formatShortDateTime };
   protected readonly t = t;
+  protected readonly colorLabel = colorLabel;
   protected readonly pageCount = computed(() => Math.max(1, Math.ceil(this.rows().length / PAGE_SIZE)));
   protected readonly pageRows = computed(() => this.rows().slice(this.page() * PAGE_SIZE, (this.page() + 1) * PAGE_SIZE));
   protected readonly rangeLabel = computed(() => {

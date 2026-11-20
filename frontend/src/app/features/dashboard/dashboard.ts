@@ -7,6 +7,7 @@ import { ApiService } from '../../core/api.service';
 import { Dashboard, ParkingSpot } from '../../core/models';
 import { errorMessage } from '../../core/error';
 import { t } from '../../core/i18n';
+import { colorLabel } from '../../core/format';
 import { formatCurrency, formatDuration, formatPercent, formatShortDateTime, formatTime } from '../../core/format';
 import { MetricStrip, Metric } from '../../shared/metric-strip';
 import { PageHeader } from '../../shared/page-header';
@@ -34,6 +35,7 @@ export class DashboardPage implements OnInit {
 
   protected readonly fmt = { formatCurrency, formatDuration, formatShortDateTime, formatTime };
   protected readonly t = t;
+  protected readonly colorLabel = colorLabel;
 
   protected readonly metrics = computed<Metric[]>(() => {
     const d = this.data();
