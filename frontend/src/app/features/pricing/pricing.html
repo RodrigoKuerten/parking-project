@@ -1,197 +1,119 @@
-@if (loading()) {
-  <div class="page" role="status" aria-label="Loading pricing configuration">
-    <div class="h-10 w-80 animate-pulse rounded bg-line/70"></div>
-    <div class="grid gap-4 lg:grid-cols-12">
-      <div class="h-[430px] animate-pulse rounded-card border border-line bg-surface lg:col-span-7"></div>
-      <div class="h-[430px] animate-pulse rounded-card bg-asphalt/90 lg:col-span-5"></div>
-    </div>
-  </div>
-} @else if (loadError()) {
-  <div class="page">
-    <div class="panel flex flex-col items-center justify-center px-6 py-16 text-center">
-      <span class="grid h-11 w-11 place-items-center rounded-full bg-occupied-soft text-occupied">
-        <ng-icon name="lucideCircleAlert" size="22" />
-      </span>
-      <h2 class="mt-4 text-lg font-semibold">Could not load the pricing rules</h2>
-      <p class="mt-1 max-w-sm text-sm text-muted">{{ loadError() }}</p>
-      <button type="button" class="btn btn-secondary mt-5" (click)="load()">
-        <ng-icon name="lucideRefreshCw" size="16" />
-        Try again
+<div class="page-enter">
+  <app-page-header title="Pricing" description="Rates the server uses to bill every check-out.">
+    @if (canEdit && config() && !editing()) {
+      <button type="button" class="btn btn-primary" (click)="startEdit()">
+        <ng-icon name="lucidePencil" size="16" aria-hidden="true" /> Edit rates
       </button>
-    </div>
-  </div>
-} @else {
-  <div class="page">
-    <div>
-      <h2 class="text-xl font-semibold tracking-tight">Rates and billing rules</h2>
-      <p class="mt-1 text-sm text-muted">The API applies these values when a vehicle checks out.</p>
-    </div>
+    }
+  </app-page-header>
 
-    <div class="grid gap-4 lg:grid-cols-12">
-      <form [formGroup]="form" (ngSubmit)="save()" class="panel lg:col-span-7">
+  @if (loading()) {
+    <div class="grid overflow-hidden rounded-xl border border-border md:grid-cols-3" role="status" aria-label="Loading pricing">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="border-border p-8 not-last:border-b md:not-last:border-r md:not-last:border-b-0">
+          <div class="skeleton mb-5 h-4 w-24"></div>
+          <div class="skeleton h-14 w-40"></div>
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <div class="panel">
+      <app-empty-state icon="lucideCircleAlert" tone="error" title="Couldn't load pricing" [description]="error()!">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="load()">Try again</button>
+      </app-empty-state>
+    </div>
+  } @else if (config(); as c) {
+    @if (!editing()) {
+      <!-- Vercel pricing: columns divided by 1px rules, big price, "Base" pill on the first column. -->
+      <section class="overflow-hidden rounded-xl border border-border bg-background" aria-label="Current rates">
+        <div class="grid md:grid-cols-3">
+          <div class="border-b border-border p-6 sm:p-8 md:border-r md:border-b-0">
+            <p class="flex items-center gap-2 text-sm font-medium">First hour <span class="badge h-5 bg-accent px-1.5 text-[11px]">Base</span></p>
+            <p class="mt-5 flex items-baseline gap-1.5">
+              <span class="text-[44px] leading-none font-semibold tracking-[-0.05em] tabular-nums">{{ fmt.formatCurrency(c.firstHourRate) }}</span>
+            </p>
+            <p class="mt-4 text-[15px] text-muted">Charged as soon as the grace period ends.</p>
+          </div>
+          <div class="border-b border-border p-6 sm:p-8 md:border-r md:border-b-0">
+            <p class="text-sm font-medium">Each extra hour</p>
+            <p class="mt-5 flex items-baseline gap-1.5">
+              <span class="text-[44px] leading-none font-semibold tracking-[-0.05em] tabular-nums">{{ fmt.formatCurrency(c.additionalHourRate) }}</span>
+              <span class="data text-sm text-muted">/h</span>
+            </p>
+            <p class="mt-4 text-[15px] text-muted">Per started hour after the first.</p>
+          </div>
+          <div class="p-6 sm:p-8">
+            <p class="text-sm font-medium">Daily cap</p>
+            <p class="mt-5 flex items-baseline gap-1.5">
+              <span class="text-[44px] leading-none font-semibold tracking-[-0.05em] tabular-nums">{{ fmt.formatCurrency(c.dailyRate) }}</span>
+              <span class="data text-sm text-muted">/day</span>
+            </p>
+            <p class="mt-4 text-[15px] text-muted">Charged per full day; each day's remainder never exceeds it.</p>
+          </div>
+        </div>
+        <dl class="grid border-t border-border bg-subtle text-sm sm:grid-cols-3">
+          <div class="flex justify-between gap-4 border-b border-border px-6 py-4 sm:border-r sm:border-b-0 sm:px-8">
+            <dt class="text-muted">Grace period</dt><dd class="data">{{ c.graceMinutes }} min</dd>
+          </div>
+          <div class="flex justify-between gap-4 border-b border-border px-6 py-4 sm:border-r sm:border-b-0 sm:px-8">
+            <dt class="text-muted">Rounding block</dt><dd class="data">{{ c.roundingMinutes }} min</dd>
+          </div>
+          <div class="flex justify-between gap-4 px-6 py-4 sm:px-8">
+            <dt class="text-muted">Last updated</dt><dd class="data">{{ c.updatedAt ? fmt.formatShortDateTime(c.updatedAt) : '—' }}</dd>
+          </div>
+        </dl>
+      </section>
+      @if (!canEdit) {
+        <p class="mt-4 text-sm text-muted">Only managers and administrators can change rates.</p>
+      }
+    } @else {
+      <form class="panel max-w-3xl" [formGroup]="form" (ngSubmit)="save()" novalidate aria-labelledby="edit-title">
         <div class="panel-header">
           <div>
-            <h2 class="section-title">Pricing configuration</h2>
-            <p class="section-caption">Amounts are stored in BRL and calculated on the server.</p>
+            <h2 id="edit-title" class="panel-title">Edit rates</h2>
+            <p class="panel-description">New rates apply to the next check-out.</p>
           </div>
-          <span class="grid h-8 w-8 place-items-center rounded-[3px] border border-line text-muted">
-            <ng-icon name="lucideSlidersHorizontal" size="17" />
-          </span>
         </div>
-
-        <div class="space-y-5 p-5">
-          <div class="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label class="label" for="first-hour">First hour</label>
-              <div class="relative">
-                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted">R$</span>
-                <input id="first-hour" type="number" step="0.01" min="0.01" formControlName="firstHourRate" class="input pl-9 font-mono" />
-              </div>
-              @if (form.controls.firstHourRate.touched && form.controls.firstHourRate.invalid) {
-                <p class="field-error">Enter a value greater than zero.</p>
-              }
-            </div>
-            <div>
-              <label class="label" for="additional-hour">Additional hour</label>
-              <div class="relative">
-                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted">R$</span>
-                <input id="additional-hour" type="number" step="0.01" min="0.01" formControlName="additionalHourRate" class="input pl-9 font-mono" />
-              </div>
-              @if (form.controls.additionalHourRate.touched && form.controls.additionalHourRate.invalid) {
-                <p class="field-error">Enter a value greater than zero.</p>
-              }
-            </div>
-            <div>
-              <label class="label" for="daily-rate">Daily cap</label>
-              <div class="relative">
-                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted">R$</span>
-                <input id="daily-rate" type="number" step="0.01" min="0.01" formControlName="dailyRate" class="input pl-9 font-mono" />
-              </div>
-              @if (form.controls.dailyRate.touched && form.controls.dailyRate.invalid) {
-                <p class="field-error">Enter a value greater than zero.</p>
-              }
-            </div>
-          </div>
-
-          <div class="grid gap-4 border-t border-line pt-5 sm:grid-cols-2">
-            <div>
-              <label class="label" for="grace-minutes">Grace period (minutes)</label>
-              <input id="grace-minutes" type="number" min="0" max="120" step="1" formControlName="graceMinutes" class="input font-mono" />
-              <p class="mt-1.5 text-xs text-muted">Sessions up to this duration are not charged. Between 0 and 120.</p>
-              @if (form.controls.graceMinutes.touched && form.controls.graceMinutes.invalid) {
-                <p class="field-error">Use a value between 0 and 120.</p>
-              }
-            </div>
-            <div>
-              <label class="label" for="rounding-minutes">Rounding block (minutes)</label>
-              <input id="rounding-minutes" type="number" min="5" max="60" step="1" formControlName="roundingMinutes" class="input font-mono" />
-              <p class="mt-1.5 text-xs text-muted">Parking time is rounded up to the next block. Between 5 and 60.</p>
-              @if (form.controls.roundingMinutes.touched && form.controls.roundingMinutes.invalid) {
-                <p class="field-error">Use a value between 5 and 60.</p>
-              }
-            </div>
-          </div>
-
-          @if (saveError()) {
-            <div class="border border-occupied/30 bg-occupied-soft p-3 text-sm text-occupied" role="alert">
-              {{ saveError() }}
-            </div>
+        <div class="grid gap-5 px-6 pt-2 pb-6 sm:grid-cols-3">
+          @if (formError()) {
+            <p class="alert-error sm:col-span-3" role="alert">{{ formError() }}</p>
           }
-
-          @if (!canEdit()) {
-            <div class="border border-line bg-paper p-3 text-sm text-muted" role="status">
-              Read-only access. Only administrators and managers can change pricing.
-            </div>
-          }
-
-          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
-            <p class="text-[11px] text-muted">
-              @if (savedAt()) {
-                Last saved {{ formatShortDateTime(savedAt()!) }}
-              } @else {
-                Configuration loaded from the database.
-              }
-            </p>
-            @if (canEdit()) {
-              <div class="flex gap-2">
-                <button type="button" class="btn btn-secondary" [disabled]="saving()" (click)="load()">Reset</button>
-                <button type="submit" class="btn btn-primary" [disabled]="saving()">
-                  @if (saving()) {
-                    <ng-icon name="lucideLoaderCircle" size="16" class="animate-spin" />
-                    Saving…
-                  } @else {
-                    Save changes
-                  }
-                </button>
-              </div>
-            }
+          <div>
+            <label class="field-label" for="p-first">First hour (R$)</label>
+            <input id="p-first" class="field data" type="number" step="0.01" min="0.01" inputmode="decimal" formControlName="firstHourRate" autofocus
+              [attr.aria-invalid]="invalid('firstHourRate')" />
+            @if (invalid('firstHourRate')) { <p class="field-error">Greater than zero, up to 2 decimals.</p> }
           </div>
+          <div>
+            <label class="field-label" for="p-extra">Each extra hour (R$)</label>
+            <input id="p-extra" class="field data" type="number" step="0.01" min="0.01" inputmode="decimal" formControlName="additionalHourRate"
+              [attr.aria-invalid]="invalid('additionalHourRate')" />
+            @if (invalid('additionalHourRate')) { <p class="field-error">Greater than zero, up to 2 decimals.</p> }
+          </div>
+          <div>
+            <label class="field-label" for="p-daily">Daily cap (R$)</label>
+            <input id="p-daily" class="field data" type="number" step="0.01" min="0.01" inputmode="decimal" formControlName="dailyRate"
+              [attr.aria-invalid]="invalid('dailyRate')" />
+            @if (invalid('dailyRate')) { <p class="field-error">Greater than zero, up to 2 decimals.</p> }
+          </div>
+          <div>
+            <label class="field-label" for="p-grace">Grace period (min)</label>
+            <input id="p-grace" class="field data" type="number" step="1" min="0" max="120" inputmode="numeric" formControlName="graceMinutes"
+              [attr.aria-invalid]="invalid('graceMinutes')" />
+            @if (invalid('graceMinutes')) { <p class="field-error">Between 0 and 120.</p> } @else { <p class="field-hint">Free stay before billing.</p> }
+          </div>
+          <div>
+            <label class="field-label" for="p-round">Rounding block (min)</label>
+            <input id="p-round" class="field data" type="number" step="1" min="5" max="60" inputmode="numeric" formControlName="roundingMinutes"
+              [attr.aria-invalid]="invalid('roundingMinutes')" />
+            @if (invalid('roundingMinutes')) { <p class="field-error">Between 5 and 60.</p> } @else { <p class="field-hint">Billed time rounds up to this.</p> }
+          </div>
+        </div>
+        <div class="flex flex-col-reverse gap-2 border-t border-border px-6 py-4 sm:flex-row sm:justify-end">
+          <button type="button" class="btn btn-secondary" (click)="editing.set(false)" [disabled]="saving()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save rates' }}</button>
         </div>
       </form>
-
-      <aside class="space-y-4 lg:col-span-5">
-        <section class="relative overflow-hidden rounded-card bg-asphalt p-5 text-white">
-          <div class="absolute inset-x-0 top-0 h-[3px] bg-signal"></div>
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-xs font-medium text-white/55">How billing works</p>
-              <h2 class="mt-1 text-lg font-semibold tracking-tight">Applied at check-out</h2>
-            </div>
-            <span class="grid h-8 w-8 place-items-center rounded-[3px] border border-white/15 text-signal">
-              <ng-icon name="lucideClock" size="17" />
-            </span>
-          </div>
-
-          <ol class="mt-5 space-y-4">
-            <li class="flex gap-3">
-              <span class="grid h-6 w-6 shrink-0 place-items-center bg-signal font-mono text-xs font-semibold text-asphalt">1</span>
-              <p class="text-sm leading-snug text-white/70">
-                Parking time is rounded up to the next {{ form.controls.roundingMinutes.value }}-minute block.
-              </p>
-            </li>
-            <li class="flex gap-3">
-              <span class="grid h-6 w-6 shrink-0 place-items-center border border-white/25 font-mono text-xs font-semibold text-white">2</span>
-              <p class="text-sm leading-snug text-white/70">
-                The first hour costs {{ formatCurrency(form.controls.firstHourRate.value) }}.
-              </p>
-            </li>
-            <li class="flex gap-3">
-              <span class="grid h-6 w-6 shrink-0 place-items-center border border-white/25 font-mono text-xs font-semibold text-white">3</span>
-              <p class="text-sm leading-snug text-white/70">
-                Each additional started hour adds {{ formatCurrency(form.controls.additionalHourRate.value) }}.
-              </p>
-            </li>
-            <li class="flex gap-3">
-              <span class="grid h-6 w-6 shrink-0 place-items-center border border-white/25 font-mono text-xs font-semibold text-white">4</span>
-              <p class="text-sm leading-snug text-white/70">
-                Every 24-hour block is capped at {{ formatCurrency(form.controls.dailyRate.value) }}.
-              </p>
-            </li>
-          </ol>
-
-          <p class="mt-5 border-t border-white/10 pt-4 text-[11px] leading-relaxed text-white/40">
-            Sessions up to {{ form.controls.graceMinutes.value }} minutes are free. Saved changes apply to check-outs completed after the update.
-          </p>
-        </section>
-
-        <section class="panel p-5">
-          <h2 class="section-title">Integrity notes</h2>
-          <ul class="mt-3 space-y-2 text-sm text-muted">
-            <li class="flex gap-2">
-              <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-signal"></span>
-              Amounts are never accepted from the browser.
-            </li>
-            <li class="flex gap-2">
-              <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-signal"></span>
-              Entry and exit timestamps come from the server clock.
-            </li>
-            <li class="flex gap-2">
-              <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-signal"></span>
-              The daily cap limits every partial 24-hour block.
-            </li>
-          </ul>
-        </section>
-      </aside>
-    </div>
-  </div>
-}
+    }
+  }
+</div>

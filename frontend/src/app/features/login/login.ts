@@ -1,117 +1,54 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideArrowRight,
-  lucideCircleAlert,
-  lucideEye,
-  lucideEyeOff,
-  lucideGauge,
-  lucideKeyRound,
-  lucideLoaderCircle,
-  lucideLockKeyhole,
-  lucideShieldCheck,
-  lucideSquareParking,
-  lucideUsers
-} from '@ng-icons/lucide';
+import { lucideArrowRight, lucideEye, lucideEyeOff, lucideSquareParking } from '@ng-icons/lucide';
 import { AuthService } from '../../core/auth.service';
 import { errorMessage } from '../../core/error';
-import { UserRole } from '../../core/models';
-
-interface DemoAccount {
-  label: string;
-  email: string;
-  password: string;
-  role: UserRole;
-}
 
 @Component({
   selector: 'app-login',
   imports: [ReactiveFormsModule, NgIcon],
-  viewProviders: [
-    provideIcons({
-      lucideArrowRight,
-      lucideCircleAlert,
-      lucideEye,
-      lucideEyeOff,
-      lucideGauge,
-      lucideKeyRound,
-      lucideLoaderCircle,
-      lucideLockKeyhole,
-      lucideShieldCheck,
-      lucideSquareParking,
-      lucideUsers
-    })
-  ],
+  providers: [provideIcons({ lucideArrowRight, lucideEye, lucideEyeOff, lucideSquareParking })],
   templateUrl: './login.html'
 })
-export class LoginComponent {
-  private readonly formBuilder = inject(FormBuilder);
+export class LoginPage {
+  /** Bound from the query string by withComponentInputBinding. */
+  readonly returnUrl = input<string>();
+
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
 
-  readonly form = this.formBuilder.nonNullable.group({
+  protected readonly form = inject(FormBuilder).nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required]]
+    password: ['', Validators.required]
   });
+  protected readonly loading = signal(false);
+  protected readonly error = signal<string | null>(null);
+  protected readonly showPassword = signal(false);
 
-  readonly submitting = signal(false);
-  readonly error = signal<string | null>(null);
-  readonly showPassword = signal(false);
-
-  readonly demoAccounts: DemoAccount[] = [
-    {
-      label: 'Administrator',
-      email: 'admin@patio.local',
-      password: 'Admin@123',
-      role: 'ADMIN'
-    },
-    {
-      label: 'Manager',
-      email: 'manager@patio.local',
-      password: 'Manager@123',
-      role: 'MANAGER'
-    },
-    {
-      label: 'Attendant',
-      email: 'attendant@patio.local',
-      password: 'Attendant@123',
-      role: 'ATTENDANT'
-    }
-  ];
-
-  togglePassword(): void {
-    this.showPassword.update(value => !value);
+  protected invalid(name: 'email' | 'password'): boolean {
+    const control = this.form.controls[name];
+    return control.invalid && control.touched;
   }
 
-  fill(account: DemoAccount): void {
-    this.form.setValue({ email: account.email, password: account.password });
-    this.error.set(null);
-  }
-
-  submit(): void {
+  protected submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-
-    const credentials = this.form.getRawValue();
-    this.submitting.set(true);
+    const { email, password } = this.form.getRawValue();
+    this.loading.set(true);
     this.error.set(null);
-
-    this.auth.login(credentials.email.trim(), credentials.password).subscribe({
+    this.auth.login(email.trim(), password).subscribe({
       next: () => {
-        this.submitting.set(false);
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-        const target = returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//')
-          ? returnUrl
-          : '/dashboard';
-        void this.router.navigateByUrl(target);
+        // Only follow internal paths to avoid an open redirect.
+        const target = this.returnUrl();
+        const safe = target && target.startsWith('/') && !target.startsWith('//') ? target : '/dashboard';
+        void this.router.navigateByUrl(safe);
       },
       error: error => {
-        this.submitting.set(false);
+        this.loading.set(false);
         this.error.set(errorMessage(error));
       }
     });

@@ -1,114 +1,98 @@
-import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideCircleAlert,
-  lucideClock,
-  lucideLoaderCircle,
-  lucideRefreshCw,
-  lucideSlidersHorizontal
-} from '@ng-icons/lucide';
+import { lucidePencil } from '@ng-icons/lucide';
 import { ApiService } from '../../core/api.service';
+import { PricingConfig } from '../../core/models';
 import { errorMessage } from '../../core/error';
 import { formatCurrency, formatShortDateTime } from '../../core/format';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
+import { EmptyState } from '../../shared/empty-state';
+import { PageHeader } from '../../shared/page-header';
+
+const MONEY = [Validators.required, Validators.min(0.01), Validators.pattern(/^\d{1,8}(\.\d{1,2})?$/)];
 
 @Component({
   selector: 'app-pricing',
-  imports: [ReactiveFormsModule, NgIcon],
-  viewProviders: [
-    provideIcons({
-      lucideCircleAlert,
-      lucideClock,
-      lucideLoaderCircle,
-      lucideRefreshCw,
-      lucideSlidersHorizontal
-    })
-  ],
+  imports: [ReactiveFormsModule, NgIcon, EmptyState, PageHeader],
+  providers: [provideIcons({ lucidePencil })],
   templateUrl: './pricing.html'
 })
-export class PricingComponent implements OnInit {
+export class PricingPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
-  private readonly formBuilder = inject(FormBuilder);
-  private readonly session = inject(SessionService);
 
-  readonly canEdit = computed(() => this.session.hasAnyRole('ADMIN', 'MANAGER'));
+  protected readonly canEdit = inject(SessionService).hasAnyRole('ADMIN', 'MANAGER');
+  protected readonly config = signal<PricingConfig | null>(null);
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly editing = signal(false);
+  protected readonly saving = signal(false);
+  protected readonly formError = signal<string | null>(null);
+  protected readonly fmt = { formatCurrency, formatShortDateTime };
 
-  readonly form = this.formBuilder.nonNullable.group({
-    firstHourRate: [0, [Validators.required, Validators.min(0.01)]],
-    additionalHourRate: [0, [Validators.required, Validators.min(0.01)]],
-    dailyRate: [0, [Validators.required, Validators.min(0.01)]],
+  protected readonly form = inject(FormBuilder).nonNullable.group({
+    firstHourRate: [0, MONEY],
+    additionalHourRate: [0, MONEY],
+    dailyRate: [0, MONEY],
     graceMinutes: [0, [Validators.required, Validators.min(0), Validators.max(120)]],
-    roundingMinutes: [60, [Validators.required, Validators.min(5), Validators.max(60)]]
+    roundingMinutes: [15, [Validators.required, Validators.min(5), Validators.max(60)]]
   });
-
-  readonly loading = signal(true);
-  readonly loadError = signal<string | null>(null);
-  readonly saving = signal(false);
-  readonly saveError = signal<string | null>(null);
-  readonly savedAt = signal<string | null>(null);
-
-  readonly formatCurrency = formatCurrency;
-  readonly formatShortDateTime = formatShortDateTime;
-
-  constructor() {
-    effect(() => {
-      if (this.canEdit()) {
-        this.form.enable({ emitEvent: false });
-      } else {
-        this.form.disable({ emitEvent: false });
-      }
-    });
-  }
 
   ngOnInit(): void {
     this.load();
   }
 
-  load(): void {
+  protected load(): void {
     this.loading.set(true);
-    this.loadError.set(null);
-    this.saveError.set(null);
-
     this.api.getPricing().subscribe({
       next: config => {
-        this.form.patchValue({
-          firstHourRate: config.firstHourRate,
-          additionalHourRate: config.additionalHourRate,
-          dailyRate: config.dailyRate,
-          graceMinutes: config.graceMinutes,
-          roundingMinutes: config.roundingMinutes
-        });
-        this.savedAt.set(config.updatedAt);
+        this.config.set(config);
+        this.error.set(null);
         this.loading.set(false);
       },
       error: error => {
-        this.loadError.set(errorMessage(error));
+        this.error.set(errorMessage(error));
         this.loading.set(false);
       }
     });
   }
 
-  save(): void {
-    if (!this.canEdit() || this.form.invalid) {
+  protected startEdit(): void {
+    const c = this.config();
+    if (!c) {
+      return;
+    }
+    const { updatedAt: _ignored, ...values } = c;
+    this.form.reset(values);
+    this.formError.set(null);
+    this.editing.set(true);
+  }
+
+  protected invalid(name: keyof typeof this.form.controls): boolean {
+    const control = this.form.controls[name];
+    return control.invalid && control.touched;
+  }
+
+  protected save(): void {
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-
+    const value = this.form.getRawValue();
     this.saving.set(true);
-    this.saveError.set(null);
-
-    this.api.updatePricing(this.form.getRawValue()).subscribe({
+    this.formError.set(null);
+    this.api.updatePricing(value).subscribe({
       next: config => {
+        this.config.set(config);
         this.saving.set(false);
-        this.savedAt.set(config.updatedAt);
-        this.toast.show('Pricing rules updated. New check-outs use the new rates.');
+        this.editing.set(false);
+        this.toast.show('Pricing updated. New rates apply to the next check-out.');
       },
       error: error => {
         this.saving.set(false);
-        this.saveError.set(errorMessage(error));
+        this.formError.set(errorMessage(error));
       }
     });
   }

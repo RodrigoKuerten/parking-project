@@ -1,100 +1,72 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import {
-  AbstractControl,
-  FormBuilder,
-  ReactiveFormsModule,
-  ValidationErrors,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideCircleAlert,
-  lucideLoaderCircle,
-  lucidePencil,
-  lucideRefreshCw,
-  lucideShieldCheck,
-  lucideUserPlus,
-  lucideUsers
-} from '@ng-icons/lucide';
+import { lucidePencil, lucidePlus, lucideSearch } from '@ng-icons/lucide';
 import { ApiService } from '../../core/api.service';
+import { UserAccount, UserRole } from '../../core/models';
 import { errorMessage } from '../../core/error';
 import { formatShortDateTime } from '../../core/format';
-import { UserAccount, UserRole } from '../../core/models';
 import { roleBadgeClass, roleLabel } from '../../core/roles';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
-import { ModalComponent } from '../../shared/modal';
-
-function optionalPasswordPolicy(control: AbstractControl): ValidationErrors | null {
-  const value = control.value as string | null;
-  if (!value) {
-    return null;
-  }
-  if (value.length < 8 || value.length > 72) {
-    return { passwordLength: true };
-  }
-  if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) {
-    return { passwordStrength: true };
-  }
-  return null;
-}
+import { EmptyState } from '../../shared/empty-state';
+import { Modal } from '../../shared/modal';
+import { PageHeader } from '../../shared/page-header';
+import { PASSWORD_PATTERN } from '../../shared/validation';
 
 @Component({
   selector: 'app-users',
-  imports: [ReactiveFormsModule, NgIcon, ModalComponent],
-  viewProviders: [
-    provideIcons({
-      lucideCircleAlert,
-      lucideLoaderCircle,
-      lucidePencil,
-      lucideRefreshCw,
-      lucideShieldCheck,
-      lucideUserPlus,
-      lucideUsers
-    })
-  ],
+  imports: [ReactiveFormsModule, NgIcon, EmptyState, Modal, PageHeader],
+  providers: [provideIcons({ lucidePencil, lucidePlus, lucideSearch })],
   templateUrl: './users.html'
 })
-export class UsersComponent implements OnInit {
+export class UsersPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
-  private readonly formBuilder = inject(FormBuilder);
   private readonly session = inject(SessionService);
 
-  readonly users = signal<UserAccount[]>([]);
-  readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
-  readonly modalOpen = signal(false);
-  readonly editing = signal<UserAccount | null>(null);
-  readonly saving = signal(false);
-  readonly formError = signal<string | null>(null);
+  protected readonly roles: UserRole[] = ['ADMIN', 'MANAGER', 'ATTENDANT'];
+  protected readonly roleLabel = roleLabel;
+  protected readonly roleBadgeClass = roleBadgeClass;
+  protected readonly formatShortDateTime = formatShortDateTime;
 
-  readonly form = this.formBuilder.nonNullable.group({
+  protected readonly users = signal<UserAccount[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly query = signal('');
+  protected readonly roleFilter = signal<UserRole | 'ALL'>('ALL');
+
+  /** null = closed, 'new' = create, otherwise the account being edited. */
+  protected readonly editing = signal<UserAccount | 'new' | null>(null);
+  protected readonly saving = signal(false);
+  protected readonly formError = signal<string | null>(null);
+  protected readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(160)]],
-    role: ['ATTENDANT' as UserRole, [Validators.required]],
+    role: ['ATTENDANT' as UserRole, Validators.required],
     active: [true],
-    password: ['', [optionalPasswordPolicy]]
+    password: ['', Validators.pattern(PASSWORD_PATTERN)]
   });
 
-  readonly activeCount = computed(() => this.users().filter(user => user.active).length);
-  readonly adminCount = computed(() => this.users().filter(user => user.role === 'ADMIN').length);
-  readonly managerCount = computed(() => this.users().filter(user => user.role === 'MANAGER').length);
-  readonly isSelfEditing = computed(() => this.editing()?.id === this.session.user()?.id);
-
-  readonly roleLabel = roleLabel;
-  readonly roleBadgeClass = roleBadgeClass;
+  protected readonly currentUserId = computed(() => this.session.user()?.id ?? null);
+  protected readonly filtered = computed(() => {
+    const q = this.query().trim().toLowerCase();
+    const role = this.roleFilter();
+    return this.users().filter(
+      u => (role === 'ALL' || u.role === role) && (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+    );
+  });
 
   ngOnInit(): void {
     this.load();
   }
 
-  load(): void {
+  protected load(): void {
     this.loading.set(true);
-    this.error.set(null);
     this.api.getUsers().subscribe({
       next: users => {
         this.users.set(users);
+        this.error.set(null);
         this.loading.set(false);
       },
       error: error => {
@@ -104,113 +76,65 @@ export class UsersComponent implements OnInit {
     });
   }
 
-  openCreate(): void {
-    this.editing.set(null);
+  protected onSearch(event: Event): void {
+    this.query.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onRoleFilter(event: Event): void {
+    this.roleFilter.set((event.target as HTMLSelectElement).value as UserRole | 'ALL');
+  }
+
+  protected openCreate(): void {
     this.form.reset({ name: '', email: '', role: 'ATTENDANT', active: true, password: '' });
     this.form.controls.email.enable();
-    this.form.controls.role.enable();
-    this.form.controls.active.enable();
-    this.configurePassword(true);
+    this.form.controls.password.setValidators([Validators.required, Validators.pattern(PASSWORD_PATTERN)]);
+    this.form.controls.password.updateValueAndValidity();
     this.formError.set(null);
-    this.modalOpen.set(true);
+    this.editing.set('new');
   }
 
-  openEdit(user: UserAccount): void {
+  protected openEdit(user: UserAccount): void {
+    this.form.reset({ name: user.name, email: user.email, role: user.role, active: user.active, password: '' });
+    this.form.controls.email.disable(); // email is not editable via UpdateUserRequest
+    this.form.controls.password.setValidators(Validators.pattern(PASSWORD_PATTERN));
+    this.form.controls.password.updateValueAndValidity();
+    this.formError.set(null);
     this.editing.set(user);
-    this.form.reset({
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      active: user.active,
-      password: ''
-    });
-    this.form.controls.email.disable();
-
-    if (user.id === this.session.user()?.id) {
-      this.form.controls.role.disable();
-      this.form.controls.active.disable();
-    } else {
-      this.form.controls.role.enable();
-      this.form.controls.active.enable();
-    }
-
-    this.configurePassword(false);
-    this.formError.set(null);
-    this.modalOpen.set(true);
   }
 
-  closeModal(): void {
-    if (!this.saving()) {
-      this.modalOpen.set(false);
-    }
+  protected invalid(name: 'name' | 'email' | 'password'): boolean {
+    const control = this.form.controls[name];
+    return control.invalid && control.touched;
   }
 
-  submit(): void {
+  protected save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
+    const target = this.editing();
+    const v = this.form.getRawValue();
+    const request =
+      target === 'new'
+        ? this.api.createUser({ name: v.name.trim(), email: v.email.trim(), password: v.password, role: v.role })
+        : this.api.updateUser(target!.id, { name: v.name.trim(), role: v.role, active: v.active, newPassword: v.password || null });
 
-    const value = this.form.getRawValue();
     this.saving.set(true);
     this.formError.set(null);
-
-    if (this.editing()) {
-      const target = this.editing()!;
-      this.api.updateUser(target.id, {
-        name: value.name.trim(),
-        role: value.role,
-        active: value.active,
-        newPassword: value.password ? value.password : null
-      }).subscribe({
-        next: () => this.completeSave('User updated.'),
-        error: error => {
-          this.saving.set(false);
-          this.formError.set(errorMessage(error));
+    request.subscribe({
+      next: saved => {
+        this.saving.set(false);
+        this.editing.set(null);
+        this.users.update(list => (target === 'new' ? [...list, saved] : list.map(u => (u.id === saved.id ? saved : u))));
+        if (saved.id === this.currentUserId()) {
+          this.session.updateUser(saved);
         }
-      });
-    } else {
-      this.api.createUser({
-        name: value.name.trim(),
-        email: value.email.trim(),
-        password: value.password,
-        role: value.role
-      }).subscribe({
-        next: () => this.completeSave('User created.'),
-        error: error => {
-          this.saving.set(false);
-          this.formError.set(errorMessage(error));
-        }
-      });
-    }
-  }
-
-  initials(name: string): string {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 0) {
-      return '?';
-    }
-    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
-  }
-
-  isCurrentUser(user: UserAccount): boolean {
-    return user.id === this.session.user()?.id;
-  }
-
-  lastLogin(user: UserAccount): string {
-    return user.lastLoginAt ? formatShortDateTime(user.lastLoginAt) : 'Never';
-  }
-
-  private configurePassword(required: boolean): void {
-    const control = this.form.controls.password;
-    control.setValidators(required ? [Validators.required, optionalPasswordPolicy] : [optionalPasswordPolicy]);
-    control.updateValueAndValidity({ emitEvent: false });
-  }
-
-  private completeSave(message: string): void {
-    this.saving.set(false);
-    this.modalOpen.set(false);
-    this.toast.show(message);
-    this.load();
+        this.toast.show(target === 'new' ? `Account created for ${saved.name}.` : `${saved.name} updated.`);
+      },
+      error: error => {
+        this.saving.set(false);
+        this.formError.set(errorMessage(error));
+      }
+    });
   }
 }

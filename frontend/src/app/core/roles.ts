@@ -12,10 +12,10 @@ export function roleLabel(role: UserRole | null | undefined): string {
 
 export function roleBadgeClass(role: UserRole): string {
   if (role === 'ADMIN') {
-    return 'bg-asphalt text-white';
+    return 'border-primary bg-primary text-white';
   }
   if (role === 'MANAGER') {
-    return 'bg-signal text-asphalt';
+    return 'border-border bg-accent text-foreground';
   }
-  return 'border border-line bg-paper text-muted';
+  return 'border-border bg-background text-muted';
 }

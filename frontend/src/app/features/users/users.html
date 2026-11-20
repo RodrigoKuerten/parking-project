@@ -1,112 +1,88 @@
-@if (loading()) {
-  <div class="page" role="status" aria-label="Loading users">
-    <div class="h-10 w-72 animate-pulse rounded bg-line/70"></div>
-    <div class="h-24 animate-pulse rounded-card border border-line bg-surface"></div>
-    <div class="h-80 animate-pulse rounded-card border border-line bg-surface"></div>
-  </div>
-} @else if (error()) {
-  <div class="page">
-    <div class="panel flex flex-col items-center justify-center px-6 py-16 text-center">
-      <span class="grid h-11 w-11 place-items-center rounded-full bg-occupied-soft text-occupied">
-        <ng-icon name="lucideCircleAlert" size="22" />
-      </span>
-      <h2 class="mt-4 text-lg font-semibold">Could not load team access</h2>
-      <p class="mt-1 max-w-sm text-sm text-muted">{{ error() }}</p>
-      <button type="button" class="btn btn-secondary mt-5" (click)="load()">
-        <ng-icon name="lucideRefreshCw" size="16" />
-        Try again
-      </button>
-    </div>
-  </div>
-} @else {
-  <div class="page">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h2 class="text-xl font-semibold tracking-tight">Team access</h2>
-        <p class="mt-1 text-sm text-muted">Manage lot accounts and the permissions attached to each role.</p>
+<div class="page-enter">
+  <app-page-header title="Users" description="Staff accounts and what each role can do.">
+    <button type="button" class="btn btn-primary" (click)="openCreate()">
+      <ng-icon name="lucidePlus" size="16" aria-hidden="true" /> New account
+    </button>
+  </app-page-header>
+
+  <section aria-labelledby="users-title">
+    <h2 id="users-title" class="sr-only">Accounts</h2>
+    <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div class="relative w-full sm:max-w-sm">
+        <label for="user-search" class="sr-only">Search by name or email</label>
+        <ng-icon name="lucideSearch" size="16" class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" aria-hidden="true" />
+        <input id="user-search" type="search" class="field pl-9" placeholder="Filter name or email…" autocomplete="off"
+          [value]="query()" (input)="onSearch($event)" />
       </div>
-      <button type="button" class="btn btn-primary" (click)="openCreate()">
-        <ng-icon name="lucideUserPlus" size="16" />
-        Add user
-      </button>
+      <div class="sm:w-40">
+        <label for="role-filter" class="sr-only">Filter by role</label>
+        <select id="role-filter" class="field" [value]="roleFilter()" (change)="onRoleFilter($event)">
+          <option value="ALL">All roles</option>
+          @for (r of roles; track r) {
+            <option [value]="r">{{ roleLabel(r) }}</option>
+          }
+        </select>
+      </div>
     </div>
 
-    <section class="stat-strip" aria-label="Access metrics">
-      <div class="stat-cell">
-        <p class="stat-label">Total users</p>
-        <p class="stat-value">{{ users().length }}</p>
+    @if (loading()) {
+      <div class="space-y-2" role="status" aria-label="Loading accounts">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="skeleton h-14"></div>
+        }
       </div>
-      <div class="stat-cell">
-        <p class="stat-label">Active</p>
-        <p class="stat-value text-available">{{ activeCount() }}</p>
+    } @else if (error()) {
+      <div class="rounded-lg border border-border">
+        <app-empty-state icon="lucideCircleAlert" tone="error" title="Couldn't load accounts" [description]="error()!">
+          <button type="button" class="btn btn-secondary btn-sm" (click)="load()">Try again</button>
+        </app-empty-state>
       </div>
-      <div class="stat-cell">
-        <p class="stat-label">Administrators</p>
-        <p class="stat-value">{{ adminCount() }}</p>
+    } @else if (filtered().length === 0) {
+      <div class="rounded-lg border border-dashed border-border">
+        <app-empty-state icon="lucideSearch" title="No results" description="Try another name, email or role.">
+          <button type="button" class="btn btn-secondary btn-sm" (click)="query.set(''); roleFilter.set('ALL')">Clear filters</button>
+        </app-empty-state>
       </div>
-      <div class="stat-cell">
-        <p class="stat-label">Managers</p>
-        <p class="stat-value">{{ managerCount() }}</p>
-      </div>
-    </section>
-
-    <section class="panel overflow-hidden">
-      <div class="panel-header">
-        <div>
-          <h2 class="section-title">Accounts</h2>
-          <p class="section-caption">{{ users().length }} people can access this lot</p>
-        </div>
-        <span class="flex items-center gap-1.5 text-[11px] text-muted">
-          <ng-icon name="lucideShieldCheck" size="14" class="text-available" />
-          Role changes apply on the next request
-        </span>
-      </div>
-
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[680px] border-collapse">
+    } @else {
+      <div class="table-frame">
+        <table class="table">
+          <caption class="sr-only">Staff accounts</caption>
           <thead>
-            <tr class="bg-paper/60">
-              <th scope="col" class="table-head">User</th>
-              <th scope="col" class="table-head">Role</th>
-              <th scope="col" class="table-head">Status</th>
-              <th scope="col" class="table-head hidden md:table-cell">Last sign-in</th>
-              <th scope="col" class="table-head text-right"><span class="sr-only">Actions</span></th>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Role</th>
+              <th scope="col" class="hidden sm:table-cell">Status</th>
+              <th scope="col" class="hidden md:table-cell">Last sign-in</th>
+              <th scope="col" class="w-px"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-line">
-            @for (user of users(); track user.id) {
-              <tr class="transition-colors hover:bg-paper/60">
-                <td class="cell">
+          <tbody>
+            @for (u of filtered(); track u.id) {
+              <tr>
+                <td>
                   <div class="flex items-center gap-3">
-                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-paper text-[11px] font-semibold text-ink">
-                      {{ initials(user.name) }}
-                    </span>
-                    <div class="min-w-0">
-                      <p class="flex items-center gap-2 text-sm font-medium">
-                        {{ user.name }}
-                        @if (isCurrentUser(user)) {
-                          <span class="badge badge-neutral">You</span>
-                        }
+                    <span class="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-xs font-medium" aria-hidden="true">{{ u.name.charAt(0) }}</span>
+                    <div class="leading-tight">
+                      <p class="font-medium">
+                        {{ u.name }}
+                        @if (u.id === currentUserId()) { <span class="ml-1 text-xs font-normal text-muted">(you)</span> }
                       </p>
-                      <p class="truncate font-mono text-[11px] text-muted">{{ user.email }}</p>
+                      <p class="text-[13px] text-muted">{{ u.email }}</p>
                     </div>
                   </div>
                 </td>
-                <td class="cell">
-                  <span class="badge" [class]="'badge ' + roleBadgeClass(user.role)">{{ roleLabel(user.role) }}</span>
-                </td>
-                <td class="cell">
-                  @if (user.active) {
-                    <span class="badge badge-free">Active</span>
+                <td><span class="badge" [class]="roleBadgeClass(u.role)">{{ roleLabel(u.role) }}</span></td>
+                <td class="hidden sm:table-cell">
+                  @if (u.active) {
+                    <span class="badge"><span class="dot bg-success"></span>Active</span>
                   } @else {
-                    <span class="badge badge-neutral">Inactive</span>
+                    <span class="badge text-muted"><span class="dot bg-muted"></span>Inactive</span>
                   }
                 </td>
-                <td class="cell hidden whitespace-nowrap text-xs text-muted md:table-cell">{{ lastLogin(user) }}</td>
-                <td class="cell text-right">
-                  <button type="button" class="btn btn-secondary btn-sm" (click)="openEdit(user)">
-                    <ng-icon name="lucidePencil" size="14" />
-                    Edit
+                <td class="data hidden text-muted md:table-cell">{{ u.lastLoginAt ? formatShortDateTime(u.lastLoginAt) : 'Never' }}</td>
+                <td class="text-right">
+                  <button type="button" class="btn btn-ghost btn-sm" [attr.aria-label]="'Edit ' + u.name" (click)="openEdit(u)">
+                    <ng-icon name="lucidePencil" size="14" aria-hidden="true" /> Edit
                   </button>
                 </td>
               </tr>
@@ -114,103 +90,73 @@
           </tbody>
         </table>
       </div>
-    </section>
-  </div>
-}
+      <p class="mt-3 text-sm text-muted" aria-live="polite">{{ filtered().length }} of {{ users().length }} account(s).</p>
+    }
+  </section>
 
-@if (modalOpen()) {
-  <app-modal
-    [title]="editing() ? 'Edit user' : 'Add user'"
-    [subtitle]="editing() ? editing()!.email : 'Create a lot account and assign its role.'"
-    (closed)="closeModal()"
-  >
-    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
-      <div>
-        <label class="label" for="user-name">Name</label>
-        <input id="user-name" type="text" formControlName="name" class="input" placeholder="Ana Souza" maxlength="100" autocomplete="off" />
-        @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
-          <p class="field-error">Enter the user name.</p>
-        }
-      </div>
+  <section class="mt-10" aria-labelledby="roles-title">
+    <h2 id="roles-title" class="mb-3 text-base font-semibold tracking-tight">Roles</h2>
+    <div class="grid overflow-hidden rounded-xl border border-border text-sm sm:grid-cols-3">
+      <div class="border-b border-border p-5 sm:border-r sm:border-b-0"><p class="font-medium">Administrator</p><p class="mt-1 text-muted">Everything, including accounts.</p></div>
+      <div class="border-b border-border p-5 sm:border-r sm:border-b-0"><p class="font-medium">Manager</p><p class="mt-1 text-muted">Operation, spots and pricing.</p></div>
+      <div class="p-5"><p class="font-medium">Attendant</p><p class="mt-1 text-muted">Check-in, check-out, yard and history.</p></div>
+    </div>
+  </section>
+</div>
 
-      <div>
-        <label class="label" for="user-email">Email</label>
-        <input id="user-email" type="email" formControlName="email" class="input" placeholder="ana@patio.local" maxlength="160" autocomplete="off" />
-        @if (form.controls.email.touched && form.controls.email.errors?.['required']) {
-          <p class="field-error">Enter the email address.</p>
-        }
-        @if (form.controls.email.touched && form.controls.email.errors?.['email']) {
-          <p class="field-error">Enter a valid email address.</p>
-        }
-        @if (editing()) {
-          <p class="mt-1.5 text-xs text-muted">The email is used as the sign-in identifier and cannot be changed.</p>
-        }
-      </div>
-
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label class="label" for="user-role">Role</label>
-          <select id="user-role" formControlName="role" class="select">
-            <option value="ADMIN">Administrator</option>
-            <option value="MANAGER">Manager</option>
-            <option value="ATTENDANT">Attendant</option>
-          </select>
-        </div>
-        @if (editing()) {
-          <div class="flex items-end pb-2.5">
-            <label class="flex items-center gap-2 text-sm">
-              <input type="checkbox" formControlName="active" class="h-4 w-4 accent-asphalt" />
-              <span>Account is active</span>
-            </label>
-          </div>
-        }
-      </div>
-
-      @if (isSelfEditing()) {
-        <p class="border border-line bg-paper p-3 text-xs text-muted">
-          You cannot remove your own administrator access or deactivate your account.
-        </p>
-      }
-
-      <div>
-        <label class="label" for="user-password">{{ editing() ? 'New password' : 'Password' }}</label>
-        <input
-          id="user-password"
-          type="password"
-          formControlName="password"
-          class="input"
-          [placeholder]="editing() ? 'Leave blank to keep the current password' : 'At least 8 characters'"
-          autocomplete="new-password"
-        />
-        <p class="mt-1.5 text-xs text-muted">At least 8 characters, including one letter and one number.</p>
-        @if (form.controls.password.touched && form.controls.password.errors?.['required']) {
-          <p class="field-error">Enter a password.</p>
-        }
-        @if (form.controls.password.touched && form.controls.password.errors?.['passwordLength']) {
-          <p class="field-error">Use 8 to 72 characters.</p>
-        }
-        @if (form.controls.password.touched && form.controls.password.errors?.['passwordStrength']) {
-          <p class="field-error">Include at least one letter and one number.</p>
-        }
-      </div>
-
+@if (editing(); as target) {
+  <app-modal [heading]="target === 'new' ? 'New account' : 'Edit ' + target.name" (closed)="editing.set(null)">
+    <form id="user-form" class="space-y-5" [formGroup]="form" (ngSubmit)="save()" novalidate>
       @if (formError()) {
-        <div class="border border-occupied/30 bg-occupied-soft p-3 text-sm text-occupied" role="alert">
-          {{ formError() }}
-        </div>
+        <p class="alert-error" role="alert">{{ formError() }}</p>
       }
-
-      <div class="flex justify-end gap-2 pt-1">
-        <button type="button" class="btn btn-secondary" [disabled]="saving()" (click)="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary" [disabled]="saving()">
-          @if (saving()) {
-            <ng-icon name="lucideLoaderCircle" size="16" class="animate-spin" />
-            Saving…
-          } @else {
-            {{ editing() ? 'Save changes' : 'Create user' }}
+      <div>
+        <label class="field-label" for="u-name">Full name</label>
+        <input id="u-name" class="field" autocomplete="off" formControlName="name" maxlength="100" autofocus [attr.aria-invalid]="invalid('name')" />
+        @if (invalid('name')) { <p class="field-error">Enter the user name.</p> }
+      </div>
+      <div>
+        <label class="field-label" for="u-email">Email</label>
+        <input id="u-email" class="field disabled:bg-accent disabled:text-muted" type="email" autocomplete="off" formControlName="email" maxlength="160" [attr.aria-invalid]="invalid('email')" />
+        @if (invalid('email')) { <p class="field-error">Enter a valid email address.</p> }
+        @if (target !== 'new') { <p class="field-hint">Email can't be changed.</p> }
+      </div>
+      <fieldset>
+        <legend class="field-label">Role</legend>
+        <div class="segmented w-full">
+          @for (r of roles; track r) {
+            <label class="relative flex h-full flex-1 cursor-pointer items-center justify-center rounded-md text-[13px] font-medium text-muted transition-colors hover:text-foreground has-[:checked]:bg-background has-[:checked]:text-foreground has-[:checked]:shadow-xs has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-foreground/40">
+              <input type="radio" class="sr-only" formControlName="role" [value]="r" />
+              {{ roleLabel(r) }}
+            </label>
           }
-        </button>
+        </div>
+      </fieldset>
+      @if (target !== 'new') {
+        <label class="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-border px-4 py-3">
+          <span>
+            <span class="block text-sm font-medium">Active</span>
+            <span class="block text-[13px] text-muted">Inactive accounts can't sign in.</span>
+          </span>
+          <input type="checkbox" class="size-4 cursor-pointer accent-[var(--color-primary)]" formControlName="active" />
+        </label>
+      }
+      <div>
+        <label class="field-label" for="u-password">{{ target === 'new' ? 'Password' : 'Reset password' }}</label>
+        <input id="u-password" class="field" type="password" autocomplete="new-password" formControlName="password" aria-describedby="u-password-hint"
+          [attr.aria-invalid]="invalid('password')" />
+        @if (invalid('password')) {
+          <p class="field-error">Use 8–72 characters with at least one letter and one number.</p>
+        } @else {
+          <p id="u-password-hint" class="field-hint">8–72 characters with a letter and a number.{{ target === 'new' ? '' : ' Leave blank to keep the current one.' }}</p>
+        }
       </div>
     </form>
+    <footer modal-footer class="flex flex-col-reverse gap-2 px-6 pt-2 pb-6 sm:flex-row sm:justify-end">
+      <button type="button" class="btn btn-secondary" (click)="editing.set(null)">Cancel</button>
+      <button type="submit" form="user-form" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'Saving…' : target === 'new' ? 'Create account' : 'Save changes' }}
+      </button>
+    </footer>
   </app-modal>
 }

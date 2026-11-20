@@ -1,111 +1,106 @@
-<a href="#main-content" class="skip-link">Skip to content</a>
+<a
+  href="#main"
+  class="sr-only z-[70] rounded-md bg-primary px-4 py-2 font-medium text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+  >Skip to content</a
+>
 
-<div class="min-h-screen lg:grid lg:grid-cols-[252px_minmax(0,1fr)]">
-  @if (mobileOpen()) {
-    <button
-      type="button"
-      class="fixed inset-0 z-30 bg-asphalt/55 lg:hidden"
-      aria-label="Close navigation"
-      (click)="mobileOpen.set(false)"
-    ></button>
+<div class="min-h-dvh bg-subtle lg:grid lg:grid-cols-[256px_1fr]">
+  @if (menuOpen()) {
+    <div class="fixed inset-0 z-40 bg-black/50 lg:hidden" (click)="menuOpen.set(false)" aria-hidden="true"></div>
   }
 
+  <!-- shadcn-style sidebar -->
   <aside
-    class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-asphalt transition-transform duration-200 lg:static lg:translate-x-0"
-    [class.-translate-x-full]="!mobileOpen()"
+    id="sidebar"
+    class="fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col border-r border-border bg-subtle transition-transform duration-200 ease-(--ease-standard) lg:sticky lg:top-0 lg:z-auto lg:h-dvh lg:w-auto lg:translate-x-0"
+    [class.-translate-x-full]="!menuOpen()"
+    [class.max-lg:invisible]="!menuOpen()"
     aria-label="Main navigation"
   >
-    <div class="h-[3px] bg-signal"></div>
-
-    <div class="flex items-center gap-3 border-b border-white/10 px-5 py-[17px]">
-      <a routerLink="/dashboard" class="flex min-w-0 items-center gap-3">
-        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-[3px] bg-signal text-asphalt">
-          <ng-icon name="lucideSquareParking" size="21" />
+    <div class="flex h-14 items-center justify-between px-4">
+      <a routerLink="/dashboard" class="flex items-center gap-2 rounded-md">
+        <span class="grid size-7 place-items-center rounded-md bg-primary text-white">
+          <ng-icon name="lucideSquareParking" size="16" aria-hidden="true" />
         </span>
-        <span class="min-w-0">
-          <span class="block text-[17px] font-semibold leading-tight tracking-tight text-white">Patio</span>
-          <span class="block text-[11px] leading-tight text-white/45">Parking operations</span>
-        </span>
+        <span class="text-[15px] font-semibold tracking-tight">Patio</span>
       </a>
-      <button
-        type="button"
-        class="ml-auto rounded-[3px] p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal lg:hidden"
-        aria-label="Close navigation"
-        (click)="mobileOpen.set(false)"
-      >
+      <button type="button" class="btn btn-ghost btn-icon btn-sm lg:hidden" aria-label="Close menu" (click)="menuOpen.set(false)">
         <ng-icon name="lucideX" size="18" />
       </button>
     </div>
 
-    <nav class="mt-5 flex-1 space-y-1 px-3" aria-label="Sections">
-      <p class="px-2 pb-2 text-[11px] font-medium text-white/40">Operations</p>
-      @for (item of visibleNav(); track item.path) {
-        <a
-          [routerLink]="item.path"
-          routerLinkActive="active"
-          ariaCurrentWhenActive="page"
-          class="nav-link"
-        >
-          <ng-icon [name]="item.icon" size="18" class="shrink-0" />
-          {{ item.label }}
-        </a>
+    <nav class="flex-1 overflow-y-auto px-2 py-2" aria-label="Sections">
+      @for (group of nav(); track group.section) {
+        <p class="px-2 pt-3 pb-1.5 text-xs font-medium text-muted">{{ group.section }}</p>
+        <ul class="space-y-0.5">
+          @for (item of group.items; track item.path) {
+            <li>
+              <a
+                [routerLink]="item.path"
+                routerLinkActive="is-active"
+                #rla="routerLinkActive"
+                [attr.aria-current]="rla.isActive ? 'page' : null"
+                class="nav-item"
+              >
+                <ng-icon [name]="item.icon" size="16" aria-hidden="true" />
+                {{ item.label }}
+              </a>
+            </li>
+          }
+        </ul>
       }
     </nav>
 
-    <div class="m-4 border border-white/10 p-3">
-      <div class="flex items-center gap-3">
-        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-xs font-semibold text-white">
-          {{ initials() }}
-        </span>
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium leading-tight text-white">{{ user()?.name }}</p>
-          <p class="mt-0.5 text-[11px] leading-tight text-white/45">{{ roleLabel(user()?.role) }}</p>
+    <div class="border-t border-border p-2">
+      <div class="flex items-center gap-2 rounded-md p-2">
+        <span class="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-xs font-medium">{{ initials() }}</span>
+        <div class="min-w-0 flex-1 leading-tight">
+          <p class="truncate text-sm font-medium">{{ user()?.name }}</p>
+          <p class="truncate text-xs text-muted">{{ user()?.email }}</p>
         </div>
-        <button
-          type="button"
-          class="rounded-[3px] p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
-          aria-label="Sign out"
-          title="Sign out"
-          (click)="logout()"
-        >
-          <ng-icon name="lucideLogOut" size="16" />
-        </button>
       </div>
+      <button type="button" class="nav-item w-full" (click)="passwordOpen.set(true)">
+        <ng-icon name="lucideKeyRound" size="16" aria-hidden="true" /> Change password
+      </button>
+      <button type="button" class="nav-item w-full" (click)="logout()">
+        <ng-icon name="lucideLogOut" size="16" aria-hidden="true" /> Sign out
+      </button>
     </div>
   </aside>
 
-  <div class="min-w-0">
-    <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-paper/95 px-4 backdrop-blur sm:px-6 lg:px-8">
-      <button
-        type="button"
-        class="rounded-[3px] p-2 text-ink transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal lg:hidden"
-        aria-label="Open navigation"
-        [attr.aria-expanded]="mobileOpen()"
-        (click)="mobileOpen.set(true)"
-      >
-        <ng-icon name="lucideMenu" size="20" />
-      </button>
+  <!-- Content inset, like shadcn "sidebar-inset" -->
+  <div class="flex min-w-0 flex-col lg:py-2 lg:pr-2">
+    <div class="flex min-h-dvh flex-1 flex-col bg-background lg:min-h-0 lg:rounded-xl lg:border lg:border-border lg:shadow-xs">
+      <header class="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/90 px-4 backdrop-blur lg:rounded-t-xl sm:px-6">
+        <button
+          type="button"
+          class="btn btn-ghost btn-icon btn-sm -ml-1.5 lg:hidden"
+          aria-label="Open menu"
+          aria-controls="sidebar"
+          [attr.aria-expanded]="menuOpen()"
+          (click)="menuOpen.set(true)"
+        >
+          <ng-icon name="lucideMenu" size="18" />
+        </button>
+        <span class="text-sm font-medium">{{ pageTitle() }}</span>
+        <span class="hidden text-sm text-muted sm:inline">· {{ roleLabel() }}</span>
 
-      <div class="min-w-0">
-        <p class="truncate text-[11px] leading-tight text-muted">{{ today }}</p>
-        <h1 class="truncate text-lg font-semibold leading-tight tracking-tight text-ink">{{ pageTitle() }}</h1>
-      </div>
-
-      <div class="ml-auto flex items-center gap-2">
-        @if (pageTitle() !== 'Check in' && pageTitle() !== 'Yard') {
+        <div class="ml-auto flex items-center gap-3">
+          <span class="data hidden text-[13px] text-muted md:inline">{{ today() }} · {{ clock() }}</span>
           <a routerLink="/check-in" class="btn btn-primary btn-sm">
-            <ng-icon name="lucidePlus" size="16" />
-            <span class="hidden sm:inline">Check in vehicle</span>
-            <span class="sr-only sm:hidden">Check in vehicle</span>
+            <ng-icon name="lucidePlus" size="16" aria-hidden="true" />
+            New check-in
           </a>
-        }
-      </div>
-    </header>
+        </div>
+      </header>
 
-    <main id="main-content" class="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <router-outlet />
-    </main>
+      <main id="main" tabindex="-1" class="mx-auto w-full max-w-[1200px] flex-1 px-4 py-8 outline-none sm:px-6 lg:px-10 lg:py-10">
+        <router-outlet />
+      </main>
+    </div>
   </div>
 </div>
 
-<app-toast-container />
+@if (passwordOpen()) {
+  <app-change-password-dialog (closed)="passwordOpen.set(false)" />
+}

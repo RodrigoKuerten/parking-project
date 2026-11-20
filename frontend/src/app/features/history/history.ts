@@ -1,82 +1,77 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideCircleAlert,
-  lucideHistory,
-  lucideRefreshCw
-} from '@ng-icons/lucide';
+import { lucideChevronLeft, lucideChevronRight, lucideFunnelX, lucideSearch } from '@ng-icons/lucide';
 import { ApiService } from '../../core/api.service';
-import { errorMessage } from '../../core/error';
-import {
-  formatCurrency,
-  formatDuration,
-  formatShortDateTime
-} from '../../core/format';
 import { Movement } from '../../core/models';
-import { PlateComponent } from '../../shared/plate';
+import { errorMessage } from '../../core/error';
+import { formatCurrency, formatDuration, formatShortDateTime, normalizePlate } from '../../core/format';
+import { EmptyState } from '../../shared/empty-state';
+import { MetricStrip, Metric } from '../../shared/metric-strip';
+import { PageHeader } from '../../shared/page-header';
+import { Plate } from '../../shared/plate';
+
+const PAGE_SIZE = 15;
 
 @Component({
   selector: 'app-history',
-  imports: [ReactiveFormsModule, NgIcon, PlateComponent],
-  viewProviders: [provideIcons({ lucideCircleAlert, lucideHistory, lucideRefreshCw })],
+  imports: [FormsModule, NgIcon, EmptyState, MetricStrip, PageHeader, Plate],
+  providers: [provideIcons({ lucideChevronLeft, lucideChevronRight, lucideFunnelX, lucideSearch })],
   templateUrl: './history.html'
 })
-export class HistoryComponent implements OnInit {
+export class HistoryPage implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly formBuilder = inject(FormBuilder);
 
-  readonly form = this.formBuilder.nonNullable.group({
-    licensePlate: [''],
-    from: [''],
-    to: ['']
-  });
+  protected plate = '';
+  protected from = '';
+  protected to = '';
+  protected readonly rows = signal<Movement[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly page = signal(0);
+  protected readonly hasFilters = signal(false);
 
-  readonly movements = signal<Movement[]>([]);
-  readonly loading = signal(false);
-  readonly error = signal<string | null>(null);
-
-  readonly totalCharged = computed(() =>
-    this.movements().reduce((total, movement) => total + (movement.amount ?? 0), 0)
-  );
-  readonly averageTicket = computed(() => {
-    const count = this.movements().length;
-    return count === 0 ? 0 : this.totalCharged() / count;
-  });
-  readonly averageStay = computed(() => {
-    const count = this.movements().length;
-    if (count === 0) {
-      return 0;
+  protected readonly fmt = { formatCurrency, formatDuration, formatShortDateTime };
+  protected readonly pageCount = computed(() => Math.max(1, Math.ceil(this.rows().length / PAGE_SIZE)));
+  protected readonly pageRows = computed(() => this.rows().slice(this.page() * PAGE_SIZE, (this.page() + 1) * PAGE_SIZE));
+  protected readonly rangeLabel = computed(() => {
+    const total = this.rows().length;
+    if (total === 0) {
+      return '0 results';
     }
-    const totalMinutes = this.movements().reduce((total, movement) => total + movement.parkingMinutes, 0);
-    return Math.round(totalMinutes / count);
+    const start = this.page() * PAGE_SIZE + 1;
+    return `${start}–${Math.min(total, start + PAGE_SIZE - 1)} of ${total}`;
   });
-
-  readonly formatCurrency = formatCurrency;
-  readonly formatDuration = formatDuration;
-  readonly formatShortDateTime = formatShortDateTime;
+  protected readonly metrics = computed<Metric[]>(() => {
+    const rows = this.rows();
+    const closed = rows.filter(r => r.status === 'CLOSED');
+    const revenue = closed.reduce((sum, r) => sum + (r.amount ?? 0), 0);
+    const avgMinutes = closed.length ? closed.reduce((sum, r) => sum + r.parkingMinutes, 0) / closed.length : 0;
+    return [
+      { label: 'Movements', value: String(rows.length) },
+      { label: 'Still parked', value: String(rows.length - closed.length), tone: 'occupied' },
+      { label: 'Revenue', value: formatCurrency(revenue), tone: 'free' },
+      { label: 'Average stay', value: closed.length ? formatDuration(avgMinutes) : '—' }
+    ];
+  });
 
   ngOnInit(): void {
-    this.apply();
+    this.search();
   }
 
-  apply(): void {
-    const filters = this.form.getRawValue();
-    if (filters.from && filters.to && filters.from > filters.to) {
-      this.error.set('The start date cannot be after the end date.');
+  protected search(): void {
+    if (this.from && this.to && this.from > this.to) {
+      this.error.set('The start date must be before the end date.');
       return;
     }
-
     this.loading.set(true);
     this.error.set(null);
-
-    this.api.getHistory({
-      licensePlate: filters.licensePlate,
-      from: filters.from,
-      to: filters.to
-    }).subscribe({
-      next: movements => {
-        this.movements.set(movements);
+    const licensePlate = normalizePlate(this.plate);
+    this.hasFilters.set(Boolean(licensePlate || this.from || this.to));
+    this.api.getHistory({ licensePlate, from: this.from || undefined, to: this.to || undefined }).subscribe({
+      next: rows => {
+        this.rows.set(rows);
+        this.page.set(0);
         this.loading.set(false);
       },
       error: error => {
@@ -86,8 +81,10 @@ export class HistoryComponent implements OnInit {
     });
   }
 
-  clear(): void {
-    this.form.reset({ licensePlate: '', from: '', to: '' });
-    this.apply();
+  protected clear(): void {
+    this.plate = '';
+    this.from = '';
+    this.to = '';
+    this.search();
   }
 }
