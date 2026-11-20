@@ -82,7 +82,8 @@
                 <td class="data hidden text-muted md:table-cell">{{ u.lastLoginAt ? formatShortDateTime(u.lastLoginAt) : t('status.never') }}</td>
                 <td class="text-right">
                   <button type="button" class="btn btn-ghost btn-sm" [attr.aria-label]="t('users.editAria', { name: u.name })" (click)="openEdit(u)">
-                    <ng-icon name="lucidePencil" size="14" aria-hidden="true" /> {{ t('users.edit') }}
+                    <ng-icon name="lucidePencil" size="14" aria-hidden="true" />
+                    <span class="hidden sm:inline">{{ t('users.edit') }}</span>
                   </button>
                 </td>
               </tr>

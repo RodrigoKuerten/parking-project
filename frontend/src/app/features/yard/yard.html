@@ -69,8 +69,11 @@
                 <td class="data hidden sm:table-cell">{{ fmt.formatDuration(s.parkingMinutes) }}</td>
                 <td class="data text-right font-medium">{{ fmt.formatCurrency(s.estimatedAmount) }}</td>
                 <td class="text-right">
-                  <button type="button" class="btn btn-secondary btn-sm" [attr.aria-label]="t('yard.checkoutAria', { plate: s.licensePlate })"
-                    (click)="openCheckout(s.licensePlate)">{{ t('common.checkOut') }}</button>
+                  <button type="button" class="btn btn-secondary btn-sm px-2.5 sm:px-3" [attr.aria-label]="t('yard.checkoutAria', { plate: s.licensePlate })"
+                    (click)="openCheckout(s.licensePlate)">
+                    <ng-icon name="lucideLogOut" size="16" class="sm:hidden" aria-hidden="true" />
+                    <span class="hidden sm:inline">{{ t('common.checkOut') }}</span>
+                  </button>
                 </td>
               </tr>
             }
