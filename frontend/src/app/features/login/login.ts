@@ -5,6 +5,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowRight, lucideEye, lucideEyeOff, lucideSquareParking } from '@ng-icons/lucide';
 import { AuthService } from '../../core/auth.service';
 import { errorMessage } from '../../core/error';
+import { t } from '../../core/i18n';
 
 @Component({
   selector: 'app-login',
@@ -16,6 +17,7 @@ export class LoginPage {
   /** Bound from the query string by withComponentInputBinding. */
   readonly returnUrl = input<string>();
 
+  protected readonly t = t;
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 

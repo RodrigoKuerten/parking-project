@@ -1,15 +1,15 @@
 <div class="page-enter">
-  <app-page-header title="Dashboard" description="Live occupancy and today's movement. Refreshes every 30 seconds.">
+  <app-page-header [title]="t('nav.dashboard')" [description]="t('dashboard.desc')">
     <button type="button" class="btn btn-secondary" (click)="load()" [disabled]="loading()">
       <ng-icon name="lucideRefreshCw" size="16" aria-hidden="true" [class.animate-spin]="loading()" />
-      Refresh
+      {{ t('common.refresh') }}
     </button>
   </app-page-header>
 
   @if (error()) {
     <div class="panel">
-      <app-empty-state icon="lucideCircleAlert" tone="error" title="Couldn't load the dashboard" [description]="error()!">
-        <button type="button" class="btn btn-secondary btn-sm" (click)="load()">Try again</button>
+      <app-empty-state icon="lucideCircleAlert" tone="error" [title]="t('dashboard.errorTitle')" [description]="error()!">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="load()">{{ t('common.tryAgain') }}</button>
       </app-empty-state>
     </div>
   } @else {
@@ -19,15 +19,15 @@
       <section class="panel" aria-labelledby="occupancy-title">
         <div class="panel-header">
           <div>
-            <h2 id="occupancy-title" class="panel-title">Occupancy</h2>
-            <p class="panel-description">{{ data()?.occupiedSpots ?? 0 }} of {{ data()?.totalSpots ?? 0 }} spots in use</p>
+            <h2 id="occupancy-title" class="panel-title">{{ t('dashboard.occupancy') }}</h2>
+            <p class="panel-description">{{ t('dashboard.occupancyCount', { occupied: data()?.occupiedSpots ?? 0, total: data()?.totalSpots ?? 0 }) }}</p>
           </div>
           <a routerLink="/spots" class="btn btn-ghost btn-sm">
-            View all <ng-icon name="lucideArrowRight" size="14" aria-hidden="true" />
+            {{ t('dashboard.viewAll') }} <ng-icon name="lucideArrowRight" size="14" aria-hidden="true" />
           </a>
         </div>
         <div class="px-6 pb-6">
-          <div class="mb-5 h-1.5 overflow-hidden rounded-full bg-accent" role="progressbar" aria-label="Occupancy rate"
+          <div class="mb-5 h-1.5 overflow-hidden rounded-full bg-accent" role="progressbar" [attr.aria-label]="t('dashboard.occupancyRateLabel')"
             aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="data()?.occupancyRate ?? 0">
             <div class="h-full rounded-full bg-primary transition-[width] duration-300" [style.width]="occupancyWidth()"></div>
           </div>
@@ -38,9 +38,9 @@
               }
             </div>
           } @else if (spots().length === 0) {
-            <app-empty-state title="No spots yet" description="Add parking spots to start tracking occupancy." />
+            <app-empty-state [title]="t('dashboard.noSpots')" [description]="t('dashboard.noSpotsHint')" />
           } @else {
-            <ul class="grid grid-cols-3 gap-2 sm:grid-cols-5 xl:grid-cols-4 2xl:grid-cols-5" aria-label="Parking spots">
+            <ul class="grid grid-cols-3 gap-2 sm:grid-cols-5 xl:grid-cols-4 2xl:grid-cols-5" [attr.aria-label]="t('dashboard.spotsAria')">
               @for (spot of spots(); track spot.id) {
                 <li><app-spot-tile [spot]="spot" /></li>
               }
@@ -52,16 +52,16 @@
       <section class="panel flex min-w-0 flex-col" aria-labelledby="movements-title">
         <div class="panel-header">
           <div>
-            <h2 id="movements-title" class="panel-title">Recent movements</h2>
+            <h2 id="movements-title" class="panel-title">{{ t('dashboard.movements') }}</h2>
             <p class="panel-description">
-              Latest check-ins and check-outs
+              {{ t('dashboard.movementsDesc') }}
               @if (updatedAt()) {
-                · updated <span class="data">{{ fmt.formatTime(updatedAt()!.toISOString()) }}</span>
+                · {{ t('dashboard.updated') }} <span class="data">{{ fmt.formatTime(updatedAt()!.toISOString()) }}</span>
               }
             </p>
           </div>
           <a routerLink="/history" class="btn btn-ghost btn-sm">
-            History <ng-icon name="lucideArrowRight" size="14" aria-hidden="true" />
+            {{ t('dashboard.history') }} <ng-icon name="lucideArrowRight" size="14" aria-hidden="true" />
           </a>
         </div>
         <div class="px-6 pb-6">
@@ -72,35 +72,35 @@
               }
             </div>
           } @else if (!data()?.recentMovements?.length) {
-            <app-empty-state title="No movements yet" description="Check-ins and check-outs will appear here.">
-              <a routerLink="/check-in" class="btn btn-primary btn-sm">New check-in</a>
+            <app-empty-state [title]="t('dashboard.noMovements')" [description]="t('dashboard.noMovementsHint')">
+              <a routerLink="/check-in" class="btn btn-primary btn-sm">{{ t('shell.newCheckIn') }}</a>
             </app-empty-state>
           } @else {
             <div class="table-frame max-h-[460px]">
               <table class="table">
-                <caption class="sr-only">Latest check-ins and check-outs</caption>
+                <caption class="sr-only">{{ t('table.caption.movements') }}</caption>
                 <thead>
                   <tr>
-                    <th scope="col">Plate</th>
-                    <th scope="col" class="hidden md:table-cell">Vehicle</th>
-                    <th scope="col">Spot</th>
-                    <th scope="col" class="hidden sm:table-cell">Entry</th>
-                    <th scope="col">Status</th>
-                    <th scope="col" class="text-right!">Amount</th>
+                    <th scope="col">{{ t('table.plate') }}</th>
+                    <th scope="col" class="hidden md:table-cell">{{ t('table.vehicle') }}</th>
+                    <th scope="col">{{ t('table.spot') }}</th>
+                    <th scope="col" class="hidden sm:table-cell">{{ t('table.entry') }}</th>
+                    <th scope="col">{{ t('table.status') }}</th>
+                    <th scope="col" class="text-right!">{{ t('table.amount') }}</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (m of data()!.recentMovements; track m.id) {
                     <tr>
                       <td><app-plate [value]="m.licensePlate" /></td>
-                      <td class="hidden text-muted md:table-cell">{{ m.model }} · {{ m.color }}</td>
+                      <td class="hidden text-muted md:table-cell">{{ m.model }} · {{ colorLabel(m.color) }}</td>
                       <td class="data">{{ m.spotNumber }}</td>
                       <td class="data hidden text-muted sm:table-cell">{{ fmt.formatShortDateTime(m.entryAt) }}</td>
                       <td>
                         @if (m.status === 'OPEN') {
-                          <span class="badge"><span class="dot bg-danger"></span>Parked</span>
+                          <span class="badge"><span class="dot bg-danger"></span>{{ t('status.parked') }}</span>
                         } @else {
-                          <span class="badge"><span class="dot bg-success"></span>Closed</span>
+                          <span class="badge"><span class="dot bg-success"></span>{{ t('status.closed') }}</span>
                         }
                       </td>
                       <td class="data text-right font-medium">{{ m.status === 'OPEN' ? '—' : fmt.formatCurrency(m.amount) }}</td>

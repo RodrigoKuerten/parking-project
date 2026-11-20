@@ -1,5 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiError } from './models';
+import { t } from './i18n';
+import { translateServerMessage } from './server-messages';
 
 export function errorMessage(error: unknown): string {
   if (error instanceof HttpErrorResponse) {
@@ -7,19 +9,19 @@ export function errorMessage(error: unknown): string {
     if (body?.fields) {
       const firstFieldError = Object.values(body.fields)[0];
       if (firstFieldError) {
-        return firstFieldError;
+        return translateServerMessage(firstFieldError);
       }
     }
     if (body?.message) {
-      return body.message;
+      return translateServerMessage(body.message);
     }
     if (error.status === 0) {
-      return 'The API is unreachable. Check that the backend is running.';
+      return t('error.unreachable');
     }
-    return 'The request could not be completed.';
+    return t('error.generic');
   }
   if (error instanceof Error) {
     return error.message;
   }
-  return 'Something went wrong. Please try again.';
+  return t('error.unknown');
 }

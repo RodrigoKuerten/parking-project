@@ -1,5 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { ParkingSpot } from '../core/models';
+import { t } from '../core/i18n';
 
 /** One parking bay. Status shown by dot AND text, never colour alone. */
 @Component({
@@ -14,9 +15,9 @@ import { ParkingSpot } from '../core/models';
       <span class="flex items-center gap-1.5 text-xs" [class]="occupied() ? 'text-foreground' : 'text-muted'">
         <span class="dot" [class]="occupied() ? 'bg-danger' : 'bg-success'" aria-hidden="true"></span>
         @if (occupied()) {
-          <span class="data truncate">{{ spot().licensePlate ?? 'Occupied' }}</span>
+          <span class="data truncate">{{ spot().licensePlate ?? t('status.occupied') }}</span>
         } @else {
-          Free
+          {{ t('status.free') }}
         }
       </span>
     </div>
@@ -25,5 +26,6 @@ import { ParkingSpot } from '../core/models';
 export class SpotTile {
   readonly spot = input.required<ParkingSpot>();
   readonly selected = input(false);
+  protected readonly t = t;
   protected readonly occupied = computed(() => this.spot().status === 'OCCUPIED');
 }

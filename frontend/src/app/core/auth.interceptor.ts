@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { ToastService } from './toast.service';
 import { SessionService } from './session.service';
+import { t } from './i18n';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const session = inject(SessionService);
@@ -22,7 +23,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
         const hadSession = session.token() !== null;
         session.clear();
         if (hadSession && !router.url.startsWith('/login')) {
-          toast.show('Your session ended. Sign in again.', 'error');
+          toast.show(t('session.ended'), 'error');
           void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
         }
       }

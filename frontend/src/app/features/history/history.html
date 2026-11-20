@@ -1,87 +1,87 @@
 <div class="page-enter">
-  <app-page-header title="History" description="Every check-in and check-out. Filter by plate or entry date." />
+  <app-page-header [title]="t('nav.history')" [description]="t('history.desc')" />
 
   <app-metric-strip [metrics]="metrics()" [loading]="loading() && rows().length === 0" />
 
   <section class="mt-8" aria-labelledby="history-title">
-    <h2 id="history-title" class="sr-only">Movements</h2>
+    <h2 id="history-title" class="sr-only">{{ t('history.movements') }}</h2>
 
     <!-- Toolbar -->
-    <form class="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end" (ngSubmit)="search()" role="search" aria-label="Filter history">
+    <form class="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end" (ngSubmit)="search()" role="search" [attr.aria-label]="t('history.filterAria')">
       <div class="relative sm:w-56">
-        <label class="sr-only" for="h-plate">License plate</label>
+        <label class="sr-only" for="h-plate">{{ t('history.plate') }}</label>
         <ng-icon name="lucideSearch" size="16" class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" aria-hidden="true" />
         <input id="h-plate" name="plate" class="field data pl-9 uppercase placeholder:normal-case" autocomplete="off" maxlength="8"
-          placeholder="Filter plate…" [(ngModel)]="plate" />
+          [placeholder]="t('history.filterPlate')" [(ngModel)]="plate" />
       </div>
       <div class="flex items-center gap-2">
-        <label class="sr-only" for="h-from">Entry from</label>
-        <input id="h-from" name="from" type="date" class="field data sm:w-40" [(ngModel)]="from" [max]="to || null" aria-label="Entry from" />
+        <label class="sr-only" for="h-from">{{ t('history.from') }}</label>
+        <input id="h-from" name="from" type="date" class="field data sm:w-40" [(ngModel)]="from" [max]="to || null" [attr.aria-label]="t('history.from')" />
         <span class="text-muted" aria-hidden="true">–</span>
-        <label class="sr-only" for="h-to">Entry to</label>
-        <input id="h-to" name="to" type="date" class="field data sm:w-40" [(ngModel)]="to" [min]="from || null" aria-label="Entry to" />
+        <label class="sr-only" for="h-to">{{ t('history.to') }}</label>
+        <input id="h-to" name="to" type="date" class="field data sm:w-40" [(ngModel)]="to" [min]="from || null" [attr.aria-label]="t('history.to')" />
       </div>
       <div class="flex gap-2">
-        <button type="submit" class="btn btn-primary flex-1 sm:flex-none" [disabled]="loading()">Apply</button>
+        <button type="submit" class="btn btn-primary flex-1 sm:flex-none" [disabled]="loading()">{{ t('history.apply') }}</button>
         @if (hasFilters()) {
           <button type="button" class="btn btn-ghost" (click)="clear()">
-            Reset <ng-icon name="lucideFunnelX" size="16" aria-hidden="true" />
+            {{ t('history.reset') }} <ng-icon name="lucideFunnelX" size="16" aria-hidden="true" />
           </button>
         }
       </div>
     </form>
 
     @if (loading()) {
-      <div class="space-y-2" role="status" aria-label="Loading history">
+      <div class="space-y-2" role="status" [attr.aria-label]="t('history.loading')">
         @for (i of [1, 2, 3, 4, 5, 6]; track i) {
           <div class="skeleton h-12"></div>
         }
       </div>
     } @else if (error()) {
       <div class="rounded-lg border border-border">
-        <app-empty-state icon="lucideCircleAlert" tone="error" title="Couldn't load history" [description]="error()!">
-          <button type="button" class="btn btn-secondary btn-sm" (click)="search()">Try again</button>
+        <app-empty-state icon="lucideCircleAlert" tone="error" [title]="t('history.errorTitle')" [description]="error()!">
+          <button type="button" class="btn btn-secondary btn-sm" (click)="search()">{{ t('common.tryAgain') }}</button>
         </app-empty-state>
       </div>
     } @else if (rows().length === 0) {
       <div class="rounded-lg border border-dashed border-border">
-        <app-empty-state icon="lucideSearch" title="No results"
-          [description]="hasFilters() ? 'Nothing matches these filters.' : 'Movements will appear after the first check-in.'">
+        <app-empty-state icon="lucideSearch" [title]="t('common.noResults')"
+          [description]="hasFilters() ? t('history.emptyFilter') : t('history.emptyHint')">
           @if (hasFilters()) {
-            <button type="button" class="btn btn-secondary btn-sm" (click)="clear()">Clear filters</button>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="clear()">{{ t('common.clearFilters') }}</button>
           }
         </app-empty-state>
       </div>
     } @else {
       <div class="table-frame">
         <table class="table">
-          <caption class="sr-only">Parking movements, newest first</caption>
+          <caption class="sr-only">{{ t('history.caption') }}</caption>
           <thead>
             <tr>
-              <th scope="col">Plate</th>
-              <th scope="col" class="hidden xl:table-cell">Vehicle</th>
-              <th scope="col" class="hidden sm:table-cell">Spot</th>
-              <th scope="col">Entry</th>
-              <th scope="col" class="hidden md:table-cell">Exit</th>
-              <th scope="col" class="hidden md:table-cell">Duration</th>
-              <th scope="col" class="hidden sm:table-cell">Status</th>
-              <th scope="col" class="text-right!">Amount</th>
+              <th scope="col">{{ t('table.plate') }}</th>
+              <th scope="col" class="hidden xl:table-cell">{{ t('table.vehicle') }}</th>
+              <th scope="col" class="hidden sm:table-cell">{{ t('table.spot') }}</th>
+              <th scope="col">{{ t('table.entry') }}</th>
+              <th scope="col" class="hidden md:table-cell">{{ t('table.exit') }}</th>
+              <th scope="col" class="hidden md:table-cell">{{ t('table.duration') }}</th>
+              <th scope="col" class="hidden sm:table-cell">{{ t('table.status') }}</th>
+              <th scope="col" class="text-right!">{{ t('table.amount') }}</th>
             </tr>
           </thead>
           <tbody>
             @for (m of pageRows(); track m.id) {
               <tr>
                 <td><app-plate [value]="m.licensePlate" /></td>
-                <td class="hidden text-muted xl:table-cell">{{ m.model }} · {{ m.color }}</td>
+                <td class="hidden text-muted xl:table-cell">{{ m.model }} · {{ colorLabel(m.color) }}</td>
                 <td class="data hidden sm:table-cell">{{ m.spotNumber }}</td>
                 <td class="data text-muted">{{ fmt.formatShortDateTime(m.entryAt) }}</td>
                 <td class="data hidden text-muted md:table-cell">{{ m.exitAt ? fmt.formatShortDateTime(m.exitAt) : '—' }}</td>
                 <td class="data hidden md:table-cell">{{ fmt.formatDuration(m.parkingMinutes) }}</td>
                 <td class="hidden sm:table-cell">
                   @if (m.status === 'OPEN') {
-                    <span class="badge"><span class="dot bg-danger"></span>Parked</span>
+                    <span class="badge"><span class="dot bg-danger"></span>{{ t('status.parked') }}</span>
                   } @else {
-                    <span class="badge"><span class="dot bg-success"></span>Closed</span>
+                    <span class="badge"><span class="dot bg-success"></span>{{ t('status.closed') }}</span>
                   }
                 </td>
                 <td class="data text-right font-medium">{{ m.status === 'OPEN' ? '—' : fmt.formatCurrency(m.amount) }}</td>
@@ -90,14 +90,14 @@
           </tbody>
         </table>
       </div>
-      <nav class="mt-3 flex items-center justify-between gap-3" aria-label="Pagination">
+      <nav class="mt-3 flex items-center justify-between gap-3" [attr.aria-label]="t('history.pagination')">
         <span class="text-sm text-muted" aria-live="polite">{{ rangeLabel() }}</span>
         <div class="flex gap-2">
           <button type="button" class="btn btn-secondary btn-sm" [disabled]="page() === 0" (click)="page.set(page() - 1)">
-            <ng-icon name="lucideChevronLeft" size="16" aria-hidden="true" /> Previous
+            <ng-icon name="lucideChevronLeft" size="16" aria-hidden="true" /> {{ t('history.previous') }}
           </button>
           <button type="button" class="btn btn-secondary btn-sm" [disabled]="page() >= pageCount() - 1" (click)="page.set(page() + 1)">
-            Next <ng-icon name="lucideChevronRight" size="16" aria-hidden="true" />
+            {{ t('history.next') }} <ng-icon name="lucideChevronRight" size="16" aria-hidden="true" />
           </button>
         </div>
       </nav>

@@ -6,6 +6,8 @@ import { ApiService } from '../../core/api.service';
 import { Movement } from '../../core/models';
 import { errorMessage } from '../../core/error';
 import { formatCurrency, formatDuration, formatShortDateTime, normalizePlate } from '../../core/format';
+import { t } from '../../core/i18n';
+import { colorLabel } from '../../core/format';
 import { EmptyState } from '../../shared/empty-state';
 import { MetricStrip, Metric } from '../../shared/metric-strip';
 import { PageHeader } from '../../shared/page-header';
@@ -32,15 +34,17 @@ export class HistoryPage implements OnInit {
   protected readonly hasFilters = signal(false);
 
   protected readonly fmt = { formatCurrency, formatDuration, formatShortDateTime };
+  protected readonly t = t;
+  protected readonly colorLabel = colorLabel;
   protected readonly pageCount = computed(() => Math.max(1, Math.ceil(this.rows().length / PAGE_SIZE)));
   protected readonly pageRows = computed(() => this.rows().slice(this.page() * PAGE_SIZE, (this.page() + 1) * PAGE_SIZE));
   protected readonly rangeLabel = computed(() => {
     const total = this.rows().length;
     if (total === 0) {
-      return '0 results';
+      return t('history.zero');
     }
     const start = this.page() * PAGE_SIZE + 1;
-    return `${start}–${Math.min(total, start + PAGE_SIZE - 1)} of ${total}`;
+    return t('history.range', { start, end: Math.min(total, start + PAGE_SIZE - 1), total });
   });
   protected readonly metrics = computed<Metric[]>(() => {
     const rows = this.rows();
@@ -48,10 +52,10 @@ export class HistoryPage implements OnInit {
     const revenue = closed.reduce((sum, r) => sum + (r.amount ?? 0), 0);
     const avgMinutes = closed.length ? closed.reduce((sum, r) => sum + r.parkingMinutes, 0) / closed.length : 0;
     return [
-      { label: 'Movements', value: String(rows.length) },
-      { label: 'Still parked', value: String(rows.length - closed.length), tone: 'occupied' },
-      { label: 'Revenue', value: formatCurrency(revenue), tone: 'free' },
-      { label: 'Average stay', value: closed.length ? formatDuration(avgMinutes) : '—' }
+      { label: t('metric.movements'), value: String(rows.length) },
+      { label: t('metric.stillParked'), value: String(rows.length - closed.length), tone: 'occupied' },
+      { label: t('metric.revenue'), value: formatCurrency(revenue), tone: 'free' },
+      { label: t('metric.avgStay'), value: closed.length ? formatDuration(avgMinutes) : '—' }
     ];
   });
 
@@ -61,7 +65,7 @@ export class HistoryPage implements OnInit {
 
   protected search(): void {
     if (this.from && this.to && this.from > this.to) {
-      this.error.set('The start date must be before the end date.');
+      this.error.set(t('history.dateError'));
       return;
     }
     this.loading.set(true);

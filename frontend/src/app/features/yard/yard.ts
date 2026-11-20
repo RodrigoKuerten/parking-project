@@ -1,12 +1,14 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideClock, lucideReceipt, lucideRefreshCw, lucideSearch } from '@ng-icons/lucide';
+import { lucideClock, lucideLogOut, lucideReceipt, lucideRefreshCw, lucideSearch } from '@ng-icons/lucide';
 import { ApiService } from '../../core/api.service';
 import { CheckOutPreview, OpenSession } from '../../core/models';
 import { errorMessage } from '../../core/error';
 import { formatCurrency, formatDuration, formatShortDateTime, formatTime, normalizePlate } from '../../core/format';
 import { ToastService } from '../../core/toast.service';
+import { t } from '../../core/i18n';
+import { colorLabel } from '../../core/format';
 import { EmptyState } from '../../shared/empty-state';
 import { Modal } from '../../shared/modal';
 import { PageHeader } from '../../shared/page-header';
@@ -17,7 +19,7 @@ type CheckoutStep = 'loading' | 'preview' | 'saving' | 'done' | 'error';
 @Component({
   selector: 'app-yard',
   imports: [RouterLink, NgIcon, EmptyState, Modal, PageHeader, Plate],
-  providers: [provideIcons({ lucideClock, lucideReceipt, lucideRefreshCw, lucideSearch })],
+  providers: [provideIcons({ lucideClock, lucideLogOut, lucideReceipt, lucideRefreshCw, lucideSearch })],
   templateUrl: './yard.html'
 })
 export class YardPage implements OnInit {
@@ -36,6 +38,8 @@ export class YardPage implements OnInit {
   protected readonly checkoutError = signal<string | null>(null);
 
   protected readonly fmt = { formatCurrency, formatDuration, formatShortDateTime, formatTime };
+  protected readonly t = t;
+  protected readonly colorLabel = colorLabel;
 
   protected readonly filtered = computed(() => {
     const q = this.query().trim().toUpperCase();
@@ -114,7 +118,7 @@ export class YardPage implements OnInit {
       next: result => {
         this.preview.set(result);
         this.step.set('done');
-        this.toast.show(`${result.licensePlate} checked out · ${formatCurrency(result.amount)}.`);
+        this.toast.show(t('yard.checkedOut', { plate: result.licensePlate, amount: formatCurrency(result.amount) }));
         this.load(true);
       },
       error: error => {

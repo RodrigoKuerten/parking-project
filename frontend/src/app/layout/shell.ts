@@ -12,6 +12,7 @@ import {
   lucideLogOut,
   lucideMenu,
   lucidePlus,
+  lucideSettings,
   lucideSquareParking,
   lucideTag,
   lucideUsers,
@@ -21,34 +22,38 @@ import { AuthService } from '../core/auth.service';
 import { SessionService } from '../core/session.service';
 import { UserRole } from '../core/models';
 import { roleLabel } from '../core/roles';
+import { intlLocale, t, TranslationKey } from '../core/i18n';
 import { ChangePasswordDialog } from './change-password-dialog';
 
 interface NavItem {
   path: string;
-  label: string;
+  label: TranslationKey;
   icon: string;
   roles?: UserRole[];
 }
 
-const NAV: { section: string; items: NavItem[] }[] = [
+const NAV: { section: TranslationKey; items: NavItem[] }[] = [
   {
-    section: 'Operation',
+    section: 'nav.operation',
     items: [
-      { path: '/dashboard', label: 'Dashboard', icon: 'lucideLayoutDashboard' },
-      { path: '/check-in', label: 'Check-in', icon: 'lucideLogIn' },
-      { path: '/yard', label: 'Yard', icon: 'lucideCar' },
-      { path: '/spots', label: 'Spots', icon: 'lucideSquareParking' }
+      { path: '/dashboard', label: 'nav.dashboard', icon: 'lucideLayoutDashboard' },
+      { path: '/check-in', label: 'nav.checkIn', icon: 'lucideLogIn' },
+      { path: '/yard', label: 'nav.yard', icon: 'lucideCar' },
+      { path: '/spots', label: 'nav.spots', icon: 'lucideSquareParking' }
     ]
   },
   {
-    section: 'Records',
+    section: 'nav.records',
     items: [
-      { path: '/history', label: 'History', icon: 'lucideHistory' },
-      { path: '/pricing', label: 'Pricing', icon: 'lucideTag' },
-      { path: '/users', label: 'Users', icon: 'lucideUsers', roles: ['ADMIN'] }
+      { path: '/history', label: 'nav.history', icon: 'lucideHistory' },
+      { path: '/pricing', label: 'nav.pricing', icon: 'lucideTag' },
+      { path: '/users', label: 'nav.users', icon: 'lucideUsers', roles: ['ADMIN'] }
     ]
   }
 ];
+
+const SETTINGS_ITEM: NavItem = { path: '/settings', label: 'nav.settings', icon: 'lucideSettings' };
+const ALL_ITEMS = [...NAV.flatMap(group => group.items), SETTINGS_ITEM];
 
 @Component({
   selector: 'app-shell',
@@ -63,6 +68,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       lucideLogOut,
       lucideMenu,
       lucidePlus,
+      lucideSettings,
       lucideSquareParking,
       lucideTag,
       lucideUsers,
@@ -78,6 +84,8 @@ export class Shell implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
+  protected readonly t = t;
+  protected readonly settingsItem = SETTINGS_ITEM;
   protected readonly user = this.session.user;
   protected readonly roleLabel = computed(() => roleLabel(this.session.role()));
   protected readonly initials = computed(() =>
@@ -94,17 +102,18 @@ export class Shell implements OnInit {
     }))
   );
   private readonly url = signal(this.router.url);
-  protected readonly pageTitle = computed(
-    () => NAV.flatMap(group => group.items).find(item => this.url().startsWith(item.path))?.label ?? 'Patio'
-  );
+  protected readonly pageTitle = computed(() => {
+    const item = ALL_ITEMS.find(entry => this.url().startsWith(entry.path));
+    return item ? t(item.label) : 'Patio';
+  });
   protected readonly menuOpen = signal(false);
   protected readonly passwordOpen = signal(false);
   protected readonly now = signal(new Date());
   protected readonly clock = computed(() =>
-    this.now().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    this.now().toLocaleTimeString(intlLocale(), { hour: '2-digit', minute: '2-digit' })
   );
   protected readonly today = computed(() =>
-    this.now().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit' })
+    this.now().toLocaleDateString(intlLocale(), { weekday: 'short', month: 'short', day: '2-digit' })
   );
 
   ngOnInit(): void {
