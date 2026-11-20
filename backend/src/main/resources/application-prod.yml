@@ -10,3 +10,5 @@ app:
 
 server:
   forward-headers-strategy: framework
+
+  port: ${PORT:8080}
