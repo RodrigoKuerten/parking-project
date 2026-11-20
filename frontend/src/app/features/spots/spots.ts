@@ -7,6 +7,7 @@ import { ParkingSpot, SpotStatus } from '../../core/models';
 import { errorMessage } from '../../core/error';
 import { formatPercent } from '../../core/format';
 import { SessionService } from '../../core/session.service';
+import { t, TranslationKey } from '../../core/i18n';
 import { ToastService } from '../../core/toast.service';
 import { EmptyState } from '../../shared/empty-state';
 import { MetricStrip, Metric } from '../../shared/metric-strip';
@@ -36,10 +37,11 @@ export class SpotsPage implements OnInit {
     number: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9-]{1,10}$/)]]
   });
 
-  protected readonly filters: { value: Filter; label: string }[] = [
-    { value: 'ALL', label: 'All' },
-    { value: 'AVAILABLE', label: 'Free' },
-    { value: 'OCCUPIED', label: 'Occupied' }
+  protected readonly t = t;
+  protected readonly filters: { value: Filter; label: TranslationKey }[] = [
+    { value: 'ALL', label: 'filter.all' },
+    { value: 'AVAILABLE', label: 'filter.free' },
+    { value: 'OCCUPIED', label: 'filter.occupied' }
   ];
 
   protected readonly counts = computed(() => {
@@ -54,10 +56,10 @@ export class SpotsPage implements OnInit {
   protected readonly metrics = computed<Metric[]>(() => {
     const c = this.counts();
     return [
-      { label: 'Total spots', value: String(c.ALL) },
-      { label: 'Free', value: String(c.AVAILABLE), tone: 'free' },
-      { label: 'Occupied', value: String(c.OCCUPIED), tone: 'occupied' },
-      { label: 'Occupancy', value: c.ALL ? formatPercent((c.OCCUPIED / c.ALL) * 100) : '—', tone: 'neutral' }
+      { label: t('metric.totalSpots'), value: String(c.ALL) },
+      { label: t('metric.free'), value: String(c.AVAILABLE), tone: 'free' },
+      { label: t('metric.occupied'), value: String(c.OCCUPIED), tone: 'occupied' },
+      { label: t('metric.occupancy'), value: c.ALL ? formatPercent((c.OCCUPIED / c.ALL) * 100) : '—', tone: 'neutral' }
     ];
   });
 
@@ -93,7 +95,7 @@ export class SpotsPage implements OnInit {
         this.saving.set(false);
         this.spots.update(list => [...list, spot]);
         this.form.reset();
-        this.toast.show(`Spot ${spot.number} added.`);
+        this.toast.show(t('spots.added', { number: spot.number }));
       },
       error: error => {
         this.saving.set(false);

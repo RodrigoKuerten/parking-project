@@ -8,6 +8,7 @@ import { OpenSession, ParkingSpot } from '../../core/models';
 import { errorMessage } from '../../core/error';
 import { formatCurrency, formatShortDateTime, isValidPlate, normalizePlate } from '../../core/format';
 import { ToastService } from '../../core/toast.service';
+import { t, TranslationKey } from '../../core/i18n';
 import { PageHeader } from '../../shared/page-header';
 import { Plate } from '../../shared/plate';
 import { SpotTile } from '../../shared/spot-tile';
@@ -16,7 +17,15 @@ function plateValidator(control: AbstractControl<string>): ValidationErrors | nu
   return control.value && !isValidPlate(control.value) ? { plate: true } : null;
 }
 
-const COLORS = ['White', 'Black', 'Silver', 'Gray', 'Red', 'Blue'];
+/** `value` is sent to the API in English; `key` only translates the button label. */
+const COLORS: { value: string; key: TranslationKey }[] = [
+  { value: 'White', key: 'color.White' },
+  { value: 'Black', key: 'color.Black' },
+  { value: 'Silver', key: 'color.Silver' },
+  { value: 'Gray', key: 'color.Gray' },
+  { value: 'Red', key: 'color.Red' },
+  { value: 'Blue', key: 'color.Blue' }
+];
 
 @Component({
   selector: 'app-check-in',
@@ -28,6 +37,7 @@ export class CheckInPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
 
+  protected readonly t = t;
   protected readonly colors = COLORS;
   protected readonly form = inject(FormBuilder).nonNullable.group({
     licensePlate: ['', [Validators.required, plateValidator]],
@@ -88,7 +98,7 @@ export class CheckInPage implements OnInit {
         next: session => {
           this.saving.set(false);
           this.receipt.set(session);
-          this.toast.show(`${session.licensePlate} checked in at spot ${session.spotNumber}.`);
+          this.toast.show(t('checkin.toast', { plate: session.licensePlate, spot: session.spotNumber }));
         },
         error: error => {
           this.saving.set(false);

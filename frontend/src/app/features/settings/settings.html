@@ -1,0 +1,21 @@
+<div class="page-enter">
+  <app-page-header [title]="t('settings.title')" [description]="t('settings.desc')" />
+
+  <section class="panel max-w-2xl" aria-labelledby="language-title">
+    <div class="panel-header">
+      <div>
+        <h2 id="language-title" class="panel-title">{{ t('settings.language') }}</h2>
+        <p class="panel-description">{{ t('settings.languageHint') }}</p>
+      </div>
+    </div>
+    <div class="px-6 pt-2 pb-6">
+      <div class="segmented" role="group" [attr.aria-label]="t('settings.chooseLanguage')">
+        @for (option of locales; track option.code) {
+          <button type="button" [attr.aria-pressed]="currentLocale() === option.code" [attr.lang]="option.code" (click)="selectLocale(option.code)">
+            {{ option.label }}
+          </button>
+        }
+      </div>
+    </div>
+  </section>
+</div>

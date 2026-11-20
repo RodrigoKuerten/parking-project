@@ -1,13 +1,8 @@
+import { t, TranslationKey } from './i18n';
 import { UserRole } from './models';
 
-const labels: Record<UserRole, string> = {
-  ADMIN: 'Administrator',
-  MANAGER: 'Manager',
-  ATTENDANT: 'Attendant'
-};
-
 export function roleLabel(role: UserRole | null | undefined): string {
-  return role ? labels[role] : '—';
+  return role ? t(`role.${role}` as TranslationKey) : '—';
 }
 
 export function roleBadgeClass(role: UserRole): string {

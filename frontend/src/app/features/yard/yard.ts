@@ -7,6 +7,7 @@ import { CheckOutPreview, OpenSession } from '../../core/models';
 import { errorMessage } from '../../core/error';
 import { formatCurrency, formatDuration, formatShortDateTime, formatTime, normalizePlate } from '../../core/format';
 import { ToastService } from '../../core/toast.service';
+import { t } from '../../core/i18n';
 import { EmptyState } from '../../shared/empty-state';
 import { Modal } from '../../shared/modal';
 import { PageHeader } from '../../shared/page-header';
@@ -36,6 +37,7 @@ export class YardPage implements OnInit {
   protected readonly checkoutError = signal<string | null>(null);
 
   protected readonly fmt = { formatCurrency, formatDuration, formatShortDateTime, formatTime };
+  protected readonly t = t;
 
   protected readonly filtered = computed(() => {
     const q = this.query().trim().toUpperCase();
@@ -114,7 +116,7 @@ export class YardPage implements OnInit {
       next: result => {
         this.preview.set(result);
         this.step.set('done');
-        this.toast.show(`${result.licensePlate} checked out · ${formatCurrency(result.amount)}.`);
+        this.toast.show(t('yard.checkedOut', { plate: result.licensePlate, amount: formatCurrency(result.amount) }));
         this.load(true);
       },
       error: error => {
