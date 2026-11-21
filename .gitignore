@@ -27,3 +27,4 @@ mysql-data/
 
 # Documentação de pesquisa local
 docs/
+.claude/
