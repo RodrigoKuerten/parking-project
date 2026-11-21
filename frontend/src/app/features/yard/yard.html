@@ -64,7 +64,7 @@
               <tr>
                 <td><app-plate [value]="s.licensePlate" /></td>
                 <td class="data">{{ s.spotNumber }}</td>
-                <td class="hidden text-muted xl:table-cell">{{ s.model }} · {{ s.color }}</td>
+                <td class="hidden text-muted xl:table-cell">{{ s.model }} · {{ colorLabel(s.color) }}</td>
                 <td class="data hidden text-muted sm:table-cell">{{ fmt.formatShortDateTime(s.entryAt) }}</td>
                 <td class="data hidden sm:table-cell">{{ fmt.formatDuration(s.parkingMinutes) }}</td>
                 <td class="data text-right font-medium">{{ fmt.formatCurrency(s.estimatedAmount) }}</td>
@@ -104,7 +104,7 @@
             <p class="mt-1 text-[40px] tabular-nums leading-none font-semibold tracking-[-0.04em]">{{ fmt.formatCurrency(p.amount) }}</p>
             <div class="mt-3 flex items-center justify-center gap-2">
               <app-plate [value]="p.licensePlate" />
-              <span class="text-sm text-muted">{{ p.model }} · {{ p.color }}</span>
+              <span class="text-sm text-muted">{{ p.model }} · {{ colorLabel(p.color) }}</span>
             </div>
           </div>
           <dl class="mt-4 space-y-2.5 text-sm">

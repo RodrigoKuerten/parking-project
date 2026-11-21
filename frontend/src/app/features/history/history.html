@@ -72,7 +72,7 @@
             @for (m of pageRows(); track m.id) {
               <tr>
                 <td><app-plate [value]="m.licensePlate" /></td>
-                <td class="hidden text-muted xl:table-cell">{{ m.model }} · {{ m.color }}</td>
+                <td class="hidden text-muted xl:table-cell">{{ m.model }} · {{ colorLabel(m.color) }}</td>
                 <td class="data hidden sm:table-cell">{{ m.spotNumber }}</td>
                 <td class="data text-muted">{{ fmt.formatShortDateTime(m.entryAt) }}</td>
                 <td class="data hidden text-muted md:table-cell">{{ m.exitAt ? fmt.formatShortDateTime(m.exitAt) : '—' }}</td>
