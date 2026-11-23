@@ -77,5 +77,9 @@ export function normalizePlate(value: string): string {
 }
 
 export function isValidPlate(value: string): boolean {
-  return /^[A-Z]{3}\d[A-Z]\d{2}$/.test(value) || /^[A-Z]{3}\d{4}$/.test(value);
+  return /^[A-Z]{3}\d[A-J]\d{2}$/.test(value) || /^[A-Z]{3}\d{4}$/.test(value);
+}
+
+export function limitPlateLetter(value: string): string {
+  return value.length >= 5 && /[K-Z]/.test(value[4]) ? value.slice(0, 4) : value;
 }

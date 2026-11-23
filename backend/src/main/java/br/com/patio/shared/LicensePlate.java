@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 
 public final class LicensePlate {
 
-    private static final Pattern MERCOSUL = Pattern.compile("[A-Z]{3}\\d[A-Z]\\d{2}");
+    private static final Pattern MERCOSUL = Pattern.compile("[A-Z]{3}\\d[A-J]\\d{2}");
     private static final Pattern LEGACY = Pattern.compile("[A-Z]{3}\\d{4}");
 
     private LicensePlate() {

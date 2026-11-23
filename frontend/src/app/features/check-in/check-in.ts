@@ -6,7 +6,7 @@ import { lucideArrowRight, lucideCircleCheck, lucidePlus } from '@ng-icons/lucid
 import { ApiService } from '../../core/api.service';
 import { OpenSession, ParkingSpot } from '../../core/models';
 import { errorMessage } from '../../core/error';
-import { formatCurrency, formatShortDateTime, isValidPlate, normalizePlate } from '../../core/format';
+import { formatCurrency, formatShortDateTime, isValidPlate, limitPlateLetter, normalizePlate } from '../../core/format';
 import { ToastService } from '../../core/toast.service';
 import { t, TranslationKey } from '../../core/i18n';
 import { colorLabel } from '../../core/format';
@@ -73,6 +73,10 @@ export class CheckInPage implements OnInit {
       next: spots => {
         this.spots.set(spots);
         this.spotsLoading.set(false);
+        const selected = this.selectedSpotId();
+        if (selected !== null && !spots.some(spot => spot.id === selected && spot.status === 'AVAILABLE')) {
+          this.selectedSpotId.set(null);
+        }
       },
       error: () => this.spotsLoading.set(false)
     });
@@ -80,8 +84,9 @@ export class CheckInPage implements OnInit {
 
   protected onPlateInput(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const value = normalizePlate(input.value);
+    const value = limitPlateLetter(normalizePlate(input.value));
     this.form.controls.licensePlate.setValue(value);
+    input.value = value;
   }
 
   protected toggleSpot(id: number): void {

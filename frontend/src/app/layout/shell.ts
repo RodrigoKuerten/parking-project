@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
@@ -23,6 +23,7 @@ import { SessionService } from '../core/session.service';
 import { UserRole } from '../core/models';
 import { roleLabel } from '../core/roles';
 import { intlLocale, t, TranslationKey } from '../core/i18n';
+import { ToastService } from '../core/toast.service';
 import { ChangePasswordDialog } from './change-password-dialog';
 
 interface NavItem {
@@ -83,6 +84,8 @@ export class Shell implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly toast = inject(ToastService);
+  private loggingOut = false;
 
   protected readonly t = t;
   protected readonly settingsItem = SETTINGS_ITEM;
@@ -113,8 +116,17 @@ export class Shell implements OnInit {
     this.now().toLocaleTimeString(intlLocale(), { hour: '2-digit', minute: '2-digit' })
   );
   protected readonly today = computed(() =>
-    this.now().toLocaleDateString(intlLocale(), { weekday: 'short', month: 'short', day: '2-digit' })
+    this.now().toLocaleDateString(intlLocale(), { weekday: 'short', month: 'short', day: '2-digit' }).replace(/\./g, '')
   );
+
+  constructor() {
+    effect(() => {
+      if (!this.session.isAuthenticated() && !this.loggingOut) {
+        this.toast.show(t('session.ended'), 'error');
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+      }
+    });
+  }
 
   ngOnInit(): void {
     const timer = setInterval(() => this.now.set(new Date()), 15_000);
@@ -132,6 +144,7 @@ export class Shell implements OnInit {
   }
 
   protected logout(): void {
+    this.loggingOut = true;
     this.auth.logout();
     void this.router.navigate(['/login']);
   }

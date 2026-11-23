@@ -3,6 +3,7 @@ import { UserAccount, UserRole } from './models';
 
 const TOKEN_KEY = 'patio.token';
 const USER_KEY = 'patio.user';
+const MAX_TIMEOUT_MS = 2_147_483_647;
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
@@ -17,10 +18,14 @@ export class SessionService {
     return token !== null && this.userState() !== null && !this.isExpired(token);
   });
 
+  private expiryTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor() {
     const token = this.tokenState();
     if (token && this.isExpired(token)) {
       this.clear();
+    } else if (token) {
+      this.scheduleExpiry(token);
     }
   }
 
@@ -29,6 +34,7 @@ export class SessionService {
     sessionStorage.setItem(USER_KEY, JSON.stringify(user));
     this.tokenState.set(token);
     this.userState.set(user);
+    this.scheduleExpiry(token);
   }
 
   updateUser(user: UserAccount): void {
@@ -37,6 +43,10 @@ export class SessionService {
   }
 
   clear(): void {
+    if (this.expiryTimer !== null) {
+      clearTimeout(this.expiryTimer);
+      this.expiryTimer = null;
+    }
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
     this.tokenState.set(null);
@@ -48,15 +58,41 @@ export class SessionService {
     return role !== null && roles.includes(role);
   }
 
+
+  private scheduleExpiry(token: string): void {
+    if (this.expiryTimer !== null) {
+      clearTimeout(this.expiryTimer);
+    }
+    const expiresAt = this.expiresAtMs(token);
+    if (expiresAt === null) {
+      return;
+    }
+
+    const delay = Math.min(expiresAt - Date.now(), MAX_TIMEOUT_MS);
+    this.expiryTimer = setTimeout(() => {
+      this.expiryTimer = null;
+      if (this.isExpired(token)) {
+        this.clear();
+      } else {
+        this.scheduleExpiry(token);
+      }
+    }, Math.max(0, delay));
+  }
+
   private isExpired(token: string): boolean {
+    const expiresAt = this.expiresAtMs(token);
+    return expiresAt === null || expiresAt <= Date.now();
+  }
+
+  private expiresAtMs(token: string): number | null {
     try {
       const payload = token.split('.')[1];
       const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
       const padded = normalized.padEnd(normalized.length + (4 - (normalized.length % 4)) % 4, '=');
       const claims = JSON.parse(atob(padded)) as { exp?: number };
-      return typeof claims.exp !== 'number' || claims.exp * 1000 <= Date.now();
+      return typeof claims.exp === 'number' ? claims.exp * 1000 : null;
     } catch {
-      return true;
+      return null;
     }
   }
 

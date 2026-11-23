@@ -69,7 +69,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         closedSession(spots.get(2), "GHI3J89", "Chevrolet Onix", "Gray",
                 now.minusHours(8), now.minusHours(5), config);
         LocalDateTime yesterday = now.minusDays(1);
-        closedSession(spots.get(3), "JKL4M01", "Volkswagen Gol", "Red",
+        closedSession(spots.get(3), "JKL4J01", "Volkswagen Gol", "Red",
                 yesterday.withHour(15).withMinute(0), yesterday.withHour(18).withMinute(20), config);
 
         openSession(spots.get(4), "BRA2E19", "Honda Civic", "Black", now.minusHours(2).minusMinutes(14));
